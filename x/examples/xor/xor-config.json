@@ -1,0 +1,23 @@
+{
+	"DifferentConnsCoefficient": 1.0,
+	"DifferentNodesCoefficient": 0.0,
+	"WeightCoefficient": 0.3,
+
+	"EnableProbability": 0.2,
+
+	"AddNodeProbability": 0.015,
+	"AddConnProbability": 0.025,
+	"AllowRecurrent": false,
+
+	"MutateWeightProbability": 0.9,
+	"ReplaceWeightProbability": 0.1,
+
+	"SurvivalRate": 0.2,
+	"MaxStagnation": 10,
+	"MutateOnlyProbability": 0.25,
+	"InterspeciesMateProbability": 0.001,
+
+	"CompatibilityThreshold": 3.0,
+	"TargetSpecies": 20,
+	"CompatibilityModifier": 0.3
+}
