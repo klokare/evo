@@ -1,17 +1,36 @@
 package evo
 
 import (
+	"bytes"
 	"fmt"
+	"math"
+	"sync"
 
 	"github.com/klokare/errors"
 )
 
-// An Experiment encapsulates the helpers and settings for running
+// An Experiment groups individuals trials under a single description
 type Experiment struct {
+
+	// Properties
+	Description string `evo:"description"`
+	Trials      int    `evo:"trials"`
+	NewTrial    func(i int) (*Trial, error)
+}
+
+func (e Experiment) String() string {
+	return fmt.Sprintf("evo.Experiment{Description: %s, Trials: %d}", e.Description, e.Trials)
+}
+
+// A Trial is a single run of an experiment. It encapsulates all the helpers needed for processing.
+type Trial struct {
+	Iterations int `evo:"iterations"`
+	Stopped    bool
 
 	// Helpers
 	Crosser
 	Mutator
+	Populater
 	Searcher
 	Selector
 	Speciater
@@ -24,82 +43,123 @@ type Experiment struct {
 	speciesID int
 }
 
-// Run one trial of the experiment starting with the population and running for n iterations
-// Check via watcher. Generation of last should be n unless solved is trigger then should be that generation. Use population of 10 to make this easy. Fitness = ID
-// Checks: each helper is called
-func Run(e *Experiment, p Population, n int) error {
-	var err error
-	for i := 0; i < n; i++ {
+func (t Trial) String() string {
+	b := bytes.NewBufferString("Experiment:\n")
+	b.WriteString(fmt.Sprintf("... Iterations:  %d\n", t.Iterations))
+	b.WriteString(fmt.Sprintf("... Stopped:     %v\n", t.Stopped))
+	b.WriteString(fmt.Sprintf("... Crosser:     %v\n", t.Crosser))
+	b.WriteString(fmt.Sprintf("... Crosser:     %v\n", t.Mutator))
+	b.WriteString(fmt.Sprintf("... Populater:   %v\n", t.Populater))
+	b.WriteString(fmt.Sprintf("... Searcher:    %v\n", t.Searcher))
+	b.WriteString(fmt.Sprintf("... Selector:    %v\n", t.Selector))
+	b.WriteString(fmt.Sprintf("... Speciater:   %v\n", t.Speciater))
+	b.WriteString(fmt.Sprintf("... Transcriber: %v\n", t.Transcriber))
+	b.WriteString(fmt.Sprintf("... Translator:  %v\n", t.Translator))
+	b.WriteString(fmt.Sprintf("... Watcher:     %v\n", t.Watcher))
+	return b.String()
+}
 
-		// Initialise the experiment or advance the population
-		if i == 0 {
-			e.initIDs(p)
-		} else {
-			if err = e.advance(&p); err != nil {
+// Run one or more trials of the experiment starting with the population and running for n iterations
+func Run(e *Experiment) (err error) {
+
+	// Set the experiment
+
+	// Iterate the trials
+	if e.Trials == 0 {
+		e.Trials = 1
+	}
+	for j := 0; j < e.Trials; j++ {
+
+		// Create a new trial
+		var t *Trial
+		if t, err = e.NewTrial(j); err != nil {
+			return
+		}
+
+		// Set the trial
+
+		// Infinite iterations requestd. Let's hope the evaluator has a solved condition.
+		if t.Iterations <= 0 {
+			t.Iterations = math.MaxInt64 // Effectively infinite
+		}
+
+		// Iterate
+		var p Population
+		for i := 0; !t.Stopped && i < t.Iterations; i++ {
+
+			// Initialise the experiment or advance the population
+			if i == 0 {
+				if p, err = t.Populater.Populate(); err != nil {
+					return
+				}
+				t.initIDs(p)
+			} else {
+				if err = t.advance(&p); err != nil {
+					return err
+				}
+			}
+
+			// Decode the genomes
+			if err = t.transcribe(p.Genomes); err != nil {
 				return err
 			}
-		}
 
-		// Decode the genomes
-		if err = e.transcribe(p.Genomes); err != nil {
-			return err
-		}
-
-		var ps []Phenome
-		if ps, err = e.translate(p.Genomes); err != nil {
-			return err
-		}
-
-		// Search the phenomes and update the population
-		var rs []Result
-		if rs, err = e.Searcher.Search(ps); err != nil {
-			return err
-		}
-
-		var stop bool
-		if stop, err = update(p.Genomes, rs); err != nil {
-			return err
-		}
-		stagnate(&p)
-
-		// Inform the watchers of the iteration
-		if e.Watcher != nil {
-			if err = e.Watcher.Watch(p); err != nil {
+			var ps []Phenome
+			if ps, err = t.translate(p.Genomes); err != nil {
 				return err
 			}
-		}
 
-		// A solution was found
-		if stop {
-			break
+			// Search the phenomes and update the population
+			var rs []Result
+			if rs, err = t.Searcher.Search(ps); err != nil {
+				return err
+			}
+
+			var stop bool
+			if stop, err = update(p.Genomes, rs); err != nil {
+				return err
+			}
+			stagnate(&p)
+
+			// Inform the watchers of the iteration
+			if t.Watcher != nil {
+				if err = t.Watcher.Watch(p); err != nil {
+					return err
+				}
+			}
+
+			// A solution was found
+			if stop {
+				break
+			}
 		}
 	}
 
 	return nil
 }
 
-// Initialise the ID sequences used in the experiment with the ones already used in the population
-func (e *Experiment) initIDs(p Population) {
+// Initialise the ID sequences used in the trial with the ones already used in the population
+func (t *Trial) initIDs(p Population) {
 	for _, g := range p.Genomes {
-		if e.genomeID < g.ID {
-			e.genomeID = g.ID
+		if t.genomeID < g.ID {
+			t.genomeID = g.ID
 		}
 	}
 	for _, s := range p.Species {
-		if e.speciesID < s.ID {
-			e.speciesID = s.ID
+		if t.speciesID < s.ID {
+			t.speciesID = s.ID
 		}
 	}
 }
 
-// Advance the experiment for one iteration. If parents are selected, this will trigger a increment
+// Advance the trial for one iteration. If parents are selected, this will trigger a increment
 // in generation.
 // Check: fatal error if the population does not have same number of genomes. If parents, speciater called, generation updated
-func (e *Experiment) advance(p *Population) error {
+func (t *Trial) advance(p *Population) error {
 
 	// Select which genomes to keep and which to become parents
 	curr := *p
-	keep, parents, err := e.Selector.Select(*p)
+	keep, parents, err := t.Selector.Select(*p)
 	if err != nil {
 		return err
 	}
@@ -113,7 +173,7 @@ func (e *Experiment) advance(p *Population) error {
 
 		// Procreate
 		var os []Genome
-		if os, err = e.procreate(parents); err != nil {
+		if os, err = t.procreate(parents); err != nil {
 			return err
 		}
 		if len(os)+len(keep) != len(curr.Genomes) {
@@ -122,7 +182,7 @@ func (e *Experiment) advance(p *Population) error {
 		p.Genomes = append(p.Genomes, os...)
 
 		// Speciate the new generation
-		if err = e.Speciater.Speciate(p); err != nil {
+		if err = t.Speciater.Speciate(p); err != nil {
 			return err
 		}
 
@@ -134,18 +194,18 @@ func (e *Experiment) advance(p *Population) error {
 }
 
 // Creates offspring from the parent groupings
-func (e *Experiment) procreate(gss [][]Genome) ([]Genome, error) {
+func (t *Trial) procreate(gss [][]Genome) ([]Genome, error) {
 	var err error
 	os := make([]Genome, 0, len(gss))
 	z := new(errors.Safe)
 	for _, gs := range gss {
 		var o Genome
-		if o, err = e.Crosser.Cross(gs...); err != nil {
+		if o, err = t.Crosser.Cross(gs...); err != nil {
 			z.Add(err)
 		}
-		e.genomeID++
-		o.ID = e.genomeID
-		if err = e.Mutator.Mutate(&o); err != nil {
+		t.genomeID++
+		o.ID = t.genomeID
+		if err = t.Mutator.Mutate(&o); err != nil {
 			z.Add(err)
 		}
 		os = append(os, o)
@@ -154,19 +214,25 @@ func (e *Experiment) procreate(gss [][]Genome) ([]Genome, error) {
 }
 
 // Transcribes encoded genomes into substrates that can be tranlsated into networks
-func (e *Experiment) transcribe(gs []Genome) error {
+func (t *Trial) transcribe(gs []Genome) error {
 	var err error
 	z := new(errors.Safe)
+	wg := new(sync.WaitGroup)
 	for i, g := range gs {
-		if gs[i].Decoded, err = e.Transcriber.Transcribe(g.Encoded); err != nil {
-			z.Add(fmt.Errorf("error transcribing genome %d: %v", g.ID, err))
-		}
+		wg.Add(1)
+		go func(i int, g Genome) {
+			if gs[i].Decoded, err = t.Transcriber.Transcribe(g.Encoded); err != nil {
+				z.Add(fmt.Errorf("error transcribing genome %d: %v", g.ID, err))
+			}
+			wg.Done()
+		}(i, g)
 	}
+	wg.Wait()
 	return z.Err()
 }
 
 // Translates decoded genomes into phenomes
-func (e *Experiment) translate(gs []Genome) ([]Phenome, error) {
+func (t *Trial) translate(gs []Genome) ([]Phenome, error) {
 	var err error
 	ps := make([]Phenome, len(gs))
 	z := new(errors.Safe)
@@ -175,7 +241,7 @@ func (e *Experiment) translate(gs []Genome) ([]Phenome, error) {
 		ps[i].Traits = make([]float64, len(g.Traits))
 		copy(ps[i].Traits, g.Traits)
 		if g.Decoded.Complexity() > 0 {
-			if ps[i].Network, err = e.Translator.Translate(g.Decoded); err != nil {
+			if ps[i].Network, err = t.Translator.Translate(g.Decoded); err != nil {
 				z.Add(fmt.Errorf("error translating genome %d: %v", g.ID, err))
 			}
 		} else {

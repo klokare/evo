@@ -1,6 +1,7 @@
 package speciator
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/klokare/evo"
@@ -11,8 +12,13 @@ import (
 type Dynamic struct {
 	Static
 
-	TargetSpecies         int
-	CompatibilityModifier float64
+	TargetSpecies         int     `evo:"target-species"`
+	CompatibilityModifier float64 `evo:"compatibility-modifier"`
+}
+
+func (h Dynamic) String() string {
+	return fmt.Sprintf("evo.speciator.Dynamic{TargetSpecies: %d, CompatibilityModifier: %f, Static: %v}",
+		h.TargetSpecies, h.CompatibilityModifier, h.Comparer)
 }
 
 // Speciate the population's genomes using the inner speciator and update its compatibility

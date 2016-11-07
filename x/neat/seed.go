@@ -1,15 +1,32 @@
-package evo
+package neat
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/klokare/evo"
 	"github.com/klokare/random"
 )
 
-func Seed(popsize int, inputs, outputs int) evo.Population {
+// Seed produces the intitial, or "seed", population
+type Seed struct {
+	PopulationSize int `evo:"population-size"`
+	NumInputs      int `evo:"num-inputs"`
+	NumOutputs     int `evo:"num-outputs"`
+}
+
+func (h Seed) String() string {
+	return fmt.Sprintf("evo.x.neat.Seed{PopulationSize: %d, NumInputs: %d, NumOutputs: %d}",
+		h.PopulationSize, h.NumInputs, h.NumOutputs)
+}
+
+// Populate provides a new population based on the seed helper's settings
+func (h *Seed) Populate() (evo.Population, error) {
 
 	// Create the prototype
+	inputs := h.NumInputs
+	outputs := h.NumOutputs
+
 	g := evo.Genome{
 		ID:        1,
 		SpeciesID: 1,
@@ -61,11 +78,11 @@ func Seed(popsize int, inputs, outputs int) evo.Population {
 		Species: []evo.Species{
 			{ID: 1, Example: g.Encoded},
 		},
-		Genomes: make([]evo.Genome, 0, popsize),
+		Genomes: make([]evo.Genome, 0, h.PopulationSize),
 	}
 	p.Genomes = append(p.Genomes, g)
 
-	for i := 1; i < popsize; i++ {
+	for i := 1; i < h.PopulationSize; i++ {
 		g2 := evo.Genome{
 			ID:        i + 1,
 			SpeciesID: 1,
@@ -82,5 +99,5 @@ func Seed(popsize int, inputs, outputs int) evo.Population {
 		p.Genomes = append(p.Genomes, g2)
 	}
 
-	return p
+	return p, nil
 }

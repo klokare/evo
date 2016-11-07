@@ -37,11 +37,11 @@ func TestDistanceCompare(t *testing.T) {
 			},
 		}
 		Convey("When comparing different nodes only", func() {
-			h.DifferentNodesCoefficient = 2.0
+			h.NodesCoefficient = 2.0
 			d, err := h.Compare(s1, s2)
 			Convey("There should be no error", func() { So(err, ShouldBeNil) })
 			Convey("The distance should be the coefficient * the number of different nodes", func() {
-				So(d, ShouldEqual, 1*h.DifferentNodesCoefficient)
+				So(d, ShouldEqual, 1*h.NodesCoefficient)
 			})
 			Convey("The result should be reciprocal", func() {
 				d2, _ := h.Compare(s2, s1)
@@ -50,11 +50,11 @@ func TestDistanceCompare(t *testing.T) {
 		})
 
 		Convey("When comparing different conns only", func() {
-			h.DifferentConnsCoefficient = 2.0
+			h.ConnsCoefficient = 2.0
 			d, err := h.Compare(s1, s2)
 			Convey("There should be no error", func() { So(err, ShouldBeNil) })
 			Convey("The distance should be the coefficient * the number of different conns", func() {
-				So(d, ShouldEqual, 2*h.DifferentConnsCoefficient)
+				So(d, ShouldEqual, 2*h.ConnsCoefficient)
 			})
 			Convey("The result should be reciprocal", func() {
 				d2, _ := h.Compare(s2, s1)

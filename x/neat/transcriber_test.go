@@ -1,4 +1,4 @@
-package transcriber
+package neat
 
 import (
 	"math/rand"
@@ -10,7 +10,7 @@ import (
 
 func TestevoTranscribe(t *testing.T) {
 	Convey("Given a evo transcriber and a substrate", t, func() {
-		h := &NEAT{}
+		h := &Transcriber{}
 		enc := evo.Substrate{
 			Nodes: []evo.Node{
 				{Position: evo.Position{Layer: 0.0, X: 0.0}, NeuronType: evo.Bias, ActivationType: evo.Direct}, // Use the Activation function to track below

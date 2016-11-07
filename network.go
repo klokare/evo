@@ -47,5 +47,5 @@ func (a ActivationType) String() string {
 
 // ActivationTypes is a list of available activations.
 var (
-	ActivationTypes = []ActivationType{Direct, Sigmoid, SteepenedSigmoid}
+	ActivationTypes = []ActivationType{Direct, Sigmoid, SteepenedSigmoid, Tanh, InverseAbs}
 )

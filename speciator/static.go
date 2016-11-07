@@ -1,11 +1,20 @@
 package speciator
 
-import "github.com/klokare/evo"
+import (
+	"fmt"
+
+	"github.com/klokare/evo"
+)
 
 // A Static speciator speciates the population without adjusting its compatiblity threshold
 type Static struct {
-	CompatibilityThreshold float64
+	CompatibilityThreshold float64 `evo:"compatibility-threshold"`
 	evo.Comparer
+}
+
+func (h Static) String() string {
+	return fmt.Sprintf("evo.speciator.Static{CompatibilityThreshold: %f, Comparer: %v}",
+		h.CompatibilityThreshold, h.Comparer)
 }
 
 // Speciate the population's genomes. If a genome matches a species' example, then it is assigned

@@ -1,23 +1,33 @@
 {
-	"DifferentConnsCoefficient": 1.0,
-	"DifferentNodesCoefficient": 0.0,
-	"WeightCoefficient": 0.3,
+	"description": "Default settings",
+	"trials": 10,
+	"iterations": 150,
 
-	"EnableProbability": 0.2,
+	"population-size": 250,
+	"num-inputs": 2,
+	"num-outputs": 1,
+	
+	
+	"conns-coefficient": 1.0,
+	"nodes-coefficient": 0.0,
+	"weight-coefficient": 0.3,
 
-	"AddNodeProbability": 0.015,
-	"AddConnProbability": 0.025,
-	"AllowRecurrent": false,
+	"enable-probability": 0.2,
 
-	"MutateWeightProbability": 0.9,
-	"ReplaceWeightProbability": 0.1,
+	"add-node-probability": 0.03,
+	"add-conn-probability": 0.05,
+	"allow-recurrent": false,
 
-	"SurvivalRate": 0.2,
-	"MaxStagnation": 10,
-	"MutateOnlyProbability": 0.25,
-	"InterspeciesMateProbability": 0.001,
+	"mutate-weight-probability": 0.9,
+	"replace-weight-probability": 0.1,
 
-	"CompatibilityThreshold": 3.0,
-	"TargetSpecies": 20,
-	"CompatibilityModifier": 0.3
-}
+	"survival-rate": 0.2,
+	"max-stagnation": 10,
+	"mutate-only-probability": 0.25,
+	"interspecies-mate-probability": 0.001,
+
+	"compatibility-threshold": 3.0,
+	"target-species": 20,
+	"compatibility-modifier": 0.3
+
+	}

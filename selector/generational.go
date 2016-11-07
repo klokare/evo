@@ -1,6 +1,7 @@
 package selector
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -12,13 +13,18 @@ import (
 
 // A Generational selector creates a new generation every iteration
 type Generational struct {
-	SurvivalRate                float64
-	MaxStagnation               int
-	MutateOnlyProbability       float64
-	InterspeciesMateProbability float64
+	SurvivalRate                float64 `evo:"survival-rate"`
+	MaxStagnation               int     `evo:"max-stagnation"`
+	MutateOnlyProbability       float64 `evo:"mutate-only-probability"`
+	InterspeciesMateProbability float64 `evo:"interspecies-mate-probability"`
 
 	maxFitness float64
 	stagnation int
+}
+
+func (h Generational) String() string {
+	return fmt.Sprintf("evo.selector.Generational{SurvivalRate: %f, MaxStagnation: %d, MutateOnlyProbability: %f, InterspeciesMateProbability; %f}",
+		h.SurvivalRate, h.MaxStagnation, h.MutateOnlyProbability, h.InterspeciesMateProbability)
 }
 
 // Select the genomes to keep and to become parents of the next generation

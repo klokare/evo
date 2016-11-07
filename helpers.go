@@ -1,6 +1,11 @@
 package evo
 
-import "github.com/klokare/errors"
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/klokare/errors"
+)
 
 // Comparer returns the "distance" between two substrates
 type Comparer interface {
@@ -25,6 +30,11 @@ type Evaluator interface {
 // Mutator mutates a genome's encoded structure
 type Mutator interface {
 	Mutate(*Genome) error
+}
+
+// Populater provides the intitial population for the experiment
+type Populater interface {
+	Populate() (Population, error)
 }
 
 // Searcher evalutes all phenomes and collects the results
@@ -60,6 +70,14 @@ type Watcher interface {
 // Mutators is a collection of mutator helpers that can be called as one.
 type Mutators []Mutator
 
+func (h Mutators) String() string {
+	b := bytes.NewBufferString("evo.Mutators:")
+	for i, m := range h {
+		b.WriteString(fmt.Sprintf(" [%d] %v", i, m))
+	}
+	return b.String()
+}
+
 // Mutate the genome with the collected mutators. The order of mutators matters as their execution
 // stops if one of the mutators changes the genomes structure.
 func (h Mutators) Mutate(g *Genome) error {
@@ -90,4 +108,12 @@ func (h Watchers) Watch(p Population) error {
 		}
 	}
 	return e.Err()
+}
+
+func (h Watchers) String() string {
+	b := bytes.NewBufferString("evo.Watchers:")
+	for i, w := range h {
+		b.WriteString(fmt.Sprintf(" [%d] %v", i, w))
+	}
+	return b.String()
 }

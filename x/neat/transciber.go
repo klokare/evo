@@ -1,4 +1,4 @@
-package transcriber
+package neat
 
 import (
 	"sort"
@@ -6,9 +6,11 @@ import (
 	"github.com/klokare/evo"
 )
 
-type NEAT struct{}
+type Transcriber struct{}
 
-func (h *NEAT) Transcribe(enc evo.Substrate) (evo.Substrate, error) {
+func (h Transcriber) String() string { return "evo.x.neat.Transcriber{}" }
+
+func (h *Transcriber) Transcribe(enc evo.Substrate) (evo.Substrate, error) {
 
 	// Create the decoded substrate
 	dec := evo.Substrate{

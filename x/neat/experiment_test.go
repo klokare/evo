@@ -1,4 +1,4 @@
-package evo
+package neat
 
 import (
 	"testing"

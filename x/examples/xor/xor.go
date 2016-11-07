@@ -1,61 +1,49 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"log"
 	"math"
+	"os"
 
 	"github.com/klokare/evo"
-	"github.com/klokare/evo/x/configurer"
-	start "github.com/klokare/evo/x/neat"
+	"github.com/klokare/evo/x/config"
+	"github.com/klokare/evo/x/neat"
+)
+
+var (
+	path = flag.String("config", "xor-config.json", "path to the configuration file")
 )
 
 func main() {
+	flag.Parse()
 
 	// Load the configuration
 	var err error
-	var b []byte
-	if b, err = configurer.LoadFromFile("xor-config.json"); err != nil {
-		log.Fatal(err)
-	}
-	c := &configurer.JSON{Source: b}
-
-	// Create a new experiment
-	var exp *evo.Experiment
-	if exp, err = start.NewExperiment(c, &XOR{}); err != nil {
+	var f *os.File
+	if f, err = os.Open(*path); err != nil {
 		log.Fatal(err)
 	}
 
-	// Create the initial population
-	pop := start.Seed(250, 2, 1)
-
-	// Run the experiment over several iterations and sum iterations
-	x := make([]int, 10)
-	g := &gen{}
-	ws := exp.Watcher.(evo.Watchers)
-	ws = append(ws, g)
-	exp.Watcher = ws
-	for i := 0; i < len(x); i++ {
-		g.generation = 0
-		if err = evo.Run(exp, pop, 150); err != nil {
-			log.Fatal(err)
-		}
-		x[i] = g.generation
+	c := &config.Configurer{Settings: &config.Settings{}}
+	if err := json.NewDecoder(f).Decode(&c.Settings); err != nil {
+		log.Fatal(err)
 	}
-	log.Println("trials", x)
-}
 
-type gen struct {
-	generation int
-}
+	// Create the experiment and run the trials
+	var e *evo.Experiment
+	if e, err = neat.NewExperiment(c, func() (evo.Evaluator, error) { return &XOR{}, nil }); err != nil {
+		log.Fatal(err)
+	}
+	if err := evo.Run(e); err != nil {
+		log.Fatal(err)
+	}
 
-func (g *gen) Watch(p evo.Population) error {
-	g.generation = p.Generation
-	return nil
 }
 
 var (
-	inputs = [][]float64{{0, 0}, {0, 1}, {1, 0}, {1, 1}}
-
+	inputs   = [][]float64{{0, 0}, {0, 1}, {1, 0}, {1, 1}}
 	expected = []float64{0, 1, 1, 0}
 )
 
@@ -75,7 +63,7 @@ func (e *XOR) Evaluate(p evo.Phenome) (evo.Result, error) {
 			stop = stop && outputs[0] > 0.5
 		}
 	}
-	f := math.Max(0.000001, 1.0-sse)
+	f := math.Max(1e-10, 1.0-sse)
 	s := stop || f >= 0.95
 	return evo.Result{ID: p.ID, Fitness: f, Solved: s}, nil
 }

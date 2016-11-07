@@ -1,14 +1,21 @@
 package mutator
 
 import (
+	"fmt"
+
 	"github.com/klokare/evo"
 	"github.com/klokare/random"
 )
 
 // A Weight mutator mutates a genome's encoded connection weights
 type Weight struct {
-	MutateWeightProbability  float64
-	ReplaceWeightProbability float64
+	MutateWeightProbability  float64 `evo:"mutate-weight-probability"`
+	ReplaceWeightProbability float64 `evo:"replace-weight-probability"`
+}
+
+func (h Weight) String() string {
+	return fmt.Sprintf("evo.mutator.Weight{MutateWeightProbability: %f, ReplaceWeightProbability: %f}",
+		h.MutateWeightProbability, h.ReplaceWeightProbability)
 }
 
 // Mutate a genome's encoded connection weights

@@ -1,6 +1,7 @@
 package mutator
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/klokare/evo"
@@ -9,9 +10,14 @@ import (
 
 // A Complexify mutator mutates a genome by adding a node or connection
 type Complexify struct {
-	AddNodeProbability float64
-	AddConnProbability float64
-	AllowRecurrent     bool
+	AddNodeProbability float64 `evo:"add-node-probability"`
+	AddConnProbability float64 `evo:"add-conn-probability"`
+	AllowRecurrent     bool    `evo:"allow-recurrent"`
+}
+
+func (h Complexify) String() string {
+	return fmt.Sprintf("evo.mutator.Complexify{AddNodeProbability: %f, AddConnProbability: %f, AllowRecurrent: %v}",
+		h.AddNodeProbability, h.AddConnProbability, h.AllowRecurrent)
 }
 
 // Mutate a genome by adding a node or a connection

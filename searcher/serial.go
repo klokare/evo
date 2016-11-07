@@ -7,6 +7,8 @@ type Serial struct {
 	evo.Evaluator
 }
 
+func (h Serial) String() string { return "evo.searcher.Serial{}" }
+
 // Search all the phenomes and return the results.
 func (h *Serial) Search(ps []evo.Phenome) (rs []evo.Result, err error) {
 	rs = make([]evo.Result, 0, len(ps))

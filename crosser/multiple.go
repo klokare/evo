@@ -1,6 +1,7 @@
 package crosser
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/klokare/evo"
@@ -9,7 +10,11 @@ import (
 
 // A Multiple crosser creates a new genome from one or more parent genomes
 type Multiple struct {
-	EnableProbability float64
+	EnableProbability float64 `evo:"enable-probability"`
+}
+
+func (h Multiple) String() string {
+	return fmt.Sprintf("evo.crosser.Multiple{EnableProbability: %f}", h.EnableProbability)
 }
 
 // Cross the genomes to create a new child genome

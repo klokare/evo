@@ -1,16 +1,25 @@
 package comparer
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/klokare/evo"
 )
 
 // A Distance comparer measures the structual differences of two substrates
+//
+// NOTE: ConnsCoefficient is applied to count of connections not found in the other
+// genome. Replaces disjoint and excess coefficients of Stanley's NEAT paper.
 type Distance struct {
-	DifferentConnsCoefficient float64 // Coefficient applied to count of connections not found in the other genome. Replaces disjoint and excess coefficients of Stanley's evo
-	DifferentNodesCoefficient float64
-	WeightCoefficient         float64
+	ConnsCoefficient  float64 `evo:"conns-coefficient"`
+	NodesCoefficient  float64 `evo:"nodes-coefficient"`
+	WeightCoefficient float64 `evo:"weight-coefficient"`
+}
+
+func (h Distance) String() string {
+	return fmt.Sprintf("evo.comparer.Distance{ConnsCoefficient: %f, NodesCoefficient: %f, WeightCoefficient: %f}",
+		h.ConnsCoefficient, h.NodesCoefficient, h.WeightCoefficient)
 }
 
 // Compare two substrates and return the structual distance between the two.
@@ -19,8 +28,8 @@ func (h *Distance) Compare(s1, s2 evo.Substrate) (float64, error) {
 	n := compareNodes(s1.Nodes, s2.Nodes)
 	c, w := compareConns(s1.Conns, s2.Conns)
 
-	return n*h.DifferentNodesCoefficient +
-		c*h.DifferentConnsCoefficient +
+	return n*h.NodesCoefficient +
+		c*h.ConnsCoefficient +
 		w*h.WeightCoefficient, nil
 }
 

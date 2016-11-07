@@ -89,7 +89,6 @@ func (net Network) Activate(inputs []float64) []float64 {
 	for _, s := range net.Synapses {
 		v[s.Target] += activate(net.Neurons[s.Source].ActivationType, v[s.Source]) * s.Weight
 	}
-
 	// Copy the outputs
 	o := make([]float64, net.Outputs)
 	offset := net.Biases + net.Inputs + net.Hiddens
