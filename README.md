@@ -15,7 +15,7 @@ go get github.com/klokare/evo
 ```
 
 ## Running an experiment
-The EVO library includes the XOR experiment in the `x/examples/xor` directory. The configuration is stored in the xor-config.json file which can be edited directly or can be overriden with command line flags. The XOR example makes use of several of the extensinos (those packages and utilities in the "x" directory) which simplify the set up and execution of an experiment. More information related to these will appear on the blog shortly. 
+The EVO library includes the XOR experiment in the `x/examples/xor` directory. The configuration is stored in the xor-config.json file which can be edited directly or can be overriden with command line flags. The XOR example makes use of several of the extensions (those packages and utilities in the "x" directory) which simplify the set up and execution of an experiment. More information related to these will appear on the blog shortly. 
 
 By default, the XOR experiment will output to the console.
 ```bash
@@ -27,7 +27,7 @@ You can override the number of trials (set to 10 in the configuration file) usin
 The extension library also contains a web application which makes working with multiple runs of an expermiment much nicer. First, launch the web server:
 ```bash
 cd $GOPATH/src/github.com/klokare/evo/x/web/cmd/server
-go run *.go 
+go run *.go -db-path evoweb.db
 ```
 
 The default port is 2016. Launch a web browser and point it to http://localhost:2016
