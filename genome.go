@@ -1,76 +1,33 @@
 package evo
 
-// A Genome is a single solution
+// A Genome is the encoded neural network and its last result when applied in evaluation.
+// For performance reasons, helpers should keep the nodes (by ID) and conns (by source and then target IDs) sorted though this is not required.
 type Genome struct {
-	ID        int       // Unique identifier for the genome
-	SpeciesID int       // The ID of the species to which this genome belongs
-	Fitness   float64   // The most recent fitness value
-	Novelty   float64   // The most recent novelty value, if any
-	Traits    []float64 // Traits encoded with this genome
-	Solved    bool      // True if the genome represents a completed solution
-	Encoded   Substrate // The encoded neural network
-	Decoded   Substrate // The decoded neural network
+	ID        int64     // The genome's unique identifier
+	SpeciesID int64     // The ID of the species
+	Fitness   float64   // The genome's latest fitness score
+	Novelty   float64   // The genome's latest novelty score, if any
+	Solved    bool      // True if the genome produced a solution in the last evaluation
+	Traits    []float64 // Additional information, encoded as floats, that will be passed to the evaluation function
+	Encoded   Substrate // The encoded neural network layout
+	Decoded   Substrate // The decoded neural network layout
 }
 
-// Complexity describes the genome by the number of encoded nodes and connections
+// Complexity returns the number of nodes and connections in the genome
 func (g Genome) Complexity() int { return g.Encoded.Complexity() }
 
-// Genomes is a sortable list of genomes.
-type Genomes []Genome
-
-func (gs Genomes) Len() int      { return len(gs) }
-func (gs Genomes) Swap(i, j int) { gs[i], gs[j] = gs[j], gs[i] }
-func (gs Genomes) Less(i, j int) bool {
-	if gs[i].Fitness < gs[j].Fitness {
-		return true // Lower fitness is "less"
-	} else if gs[i].Fitness == gs[j].Fitness {
-		ci := gs[i].Complexity()
-		cj := gs[j].Complexity()
-		if ci > cj {
-			return true // Higher complexity is "less"
-		} else if ci == cj {
-			return gs[i].ID > gs[j].ID // Greater ID is "less"
-		}
-	}
-	return false
-}
-
-// AvgFitness returns the average fitness of the genomes in the set
-func (gs Genomes) AvgFitness() float64 {
-	if len(gs) == 0 {
-		return 0.0
-	}
-	sum := 0.0
-	for _, g := range gs {
-		sum += g.Fitness
-	}
-	return sum / float64(len(gs))
-}
-
-// MaxFitness returns the maximum fitness of the genomes in the set
-func (gs Genomes) MaxFitness() float64 {
-	max := 0.0
-	for _, g := range gs {
-		if max < g.Fitness {
-			max = g.Fitness
-		}
-	}
-	return max
-}
-
-// A Phenome is a working instance of the genome
+// A Phenome is the instatiated genome to be sent to the evaluator
 type Phenome struct {
-	ID     int
-	Traits []float64
-	Network
+	ID      int64     // The unique identifier of the genome
+	Traits  []float64 // Any additional information, specific to this genome, to be passed to the evaluation function. This is optional.
+	Network           // The neural network made from the genome's encoding
 }
 
-// Result of an evaluation
+// Result describes the outcome of running the evaluation. ID and fitness are required properties. If an error occurs in the evaluation, this should be returned with the result.
 type Result struct {
-	ID       int       // ID of the phenome evaluated
-	Fitness  float64   // Fitness of phenome after evaluation
-	Novelty  float64   // Novelty of phenome, if any, after evaluation
-	Behavior []float64 // The behaviour of the phenome recorded during the evaluation
-	Solved   bool      // Phenome is a completed solution
-	Error    error     // Error, if any, that occurred during evaluation of the phenome
+	ID       int64         // The unique ID of the genome from which the phenome was made
+	Solved   bool          // True if the network provided a winning solution
+	Fitness  float64       // A positve value indicating the fitness of this network after evaluation
+	Novelty  float64       // An optional value indicating the novelty of this network's decisions during evaluation
+	Behavior []interface{} // An optional slice describing the novelty of the network's decisions
 }

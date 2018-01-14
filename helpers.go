@@ -1,119 +1,53 @@
 package evo
 
-import (
-	"bytes"
-	"fmt"
+import "context"
 
-	"github.com/klokare/errors"
-)
-
-// Comparer returns the "distance" between two substrates
-type Comparer interface {
-	Compare(Substrate, Substrate) (float64, error)
-}
-
-// Configurer configures a helper
+// Configurer provides a consistent way to configure one or more helpers
 type Configurer interface {
-	Configure(interface{}) error
+	Configure(...interface{}) error
 }
 
-// Crosser creates a new genome by crossing parents
+// Crosser creates a new child from the parents through crossover (or cloning if there is only one parent). The crosser is not responsible for mutation or for assigning the genome an ID or to a species.
 type Crosser interface {
-	Cross(...Genome) (Genome, error)
+	Cross(ctx context.Context, parents ...Genome) (child Genome, err error)
 }
 
-// Evaluator evaluates a single phenome and returns a result
+// Evaluator utilises the network provided and returns its fitness (or error) as a result
 type Evaluator interface {
-	Evaluate(Phenome) (Result, error)
+	Evaluate(context.Context, Phenome) (Result, error)
 }
 
-// Mutator mutates a genome's encoded structure
+// Mutator changes the genome's encoding (nodes, conns, or traits)
 type Mutator interface {
-	Mutate(*Genome) error
+	Mutate(context.Context, *Genome) error
 }
 
-// Populater provides the intitial population for the experiment
-type Populater interface {
-	Populate() (Population, error)
+// Populator provides a popluation from which the experiment will begin
+type Populator interface {
+	Populate(context.Context) (Population, error)
 }
 
-// Searcher evalutes all phenomes and collects the results
+// Searcher processes each phenome through the evaluator and returns the result
 type Searcher interface {
-	Search([]Phenome) ([]Result, error)
+	Search(context.Context, Evaluator, []Phenome) ([]Result, error)
 }
 
-// Selector selects which genomes are kept and which become parents
+// Selector examines a population returns the current genomes who will continue and those that will become parents
 type Selector interface {
-	Select(Population) ([]Genome, [][]Genome, error)
+	Select(context.Context, Population) (continuing []Genome, parents [][]Genome, err error)
 }
 
-// Speciater divides the population's genome into species
-type Speciater interface {
-	Speciate(*Population) error
+// Speciator assigns the population's genomes to a species, creating and destroying species as necessary.
+type Speciator interface {
+	Speciate(context.Context, *Population) error
 }
 
-// Transcriber creates a decoded substrate from an encoded one
-type Transcriber interface {
-	Transcribe(Substrate) (Substrate, error)
-}
-
-// Translator creates a network from a substrate
+// Translator creates a new network from defintions contained in the nodes and connections
 type Translator interface {
-	Translate(Substrate) (Network, error)
+	Translate(context.Context, Substrate) (Network, error)
 }
 
-// Watcher watches a population and is informed after each iteration
-type Watcher interface {
-	Watch(Population) error
-}
-
-// Mutators is a collection of mutator helpers that can be called as one.
-type Mutators []Mutator
-
-func (h Mutators) String() string {
-	b := bytes.NewBufferString("evo.Mutators:")
-	for i, m := range h {
-		b.WriteString(fmt.Sprintf(" [%d] %v", i, m))
-	}
-	return b.String()
-}
-
-// Mutate the genome with the collected mutators. The order of mutators matters as their execution
-// stops if one of the mutators changes the genomes structure.
-func (h Mutators) Mutate(g *Genome) error {
-	c := g.Complexity()
-	for _, m := range h {
-		if err := m.Mutate(g); err != nil {
-			return err
-		}
-		if c != g.Complexity() {
-			break
-		}
-	}
-	return nil
-}
-
-// Watchers is a collections of watcher helpers that can be called as one.
-type Watchers []Watcher
-
-// Watch informs the helper of an iteration and passes the current population. Order does not
-// matter as all watchers are called.
-// TODO: make concurrent
-// TODO: Handle errors from watchers
-func (h Watchers) Watch(p Population) error {
-	e := new(errors.Safe)
-	for _, w := range h {
-		if err := w.Watch(p); err != nil {
-			e.Add(err)
-		}
-	}
-	return e.Err()
-}
-
-func (h Watchers) String() string {
-	b := bytes.NewBufferString("evo.Watchers:")
-	for i, w := range h {
-		b.WriteString(fmt.Sprintf(" [%d] %v", i, w))
-	}
-	return b.String()
+// Transcriber decodes the genome, returning the nodes and connections to be used to create the network
+type Transcriber interface {
+	Transcribe(context.Context, Substrate) (Substrate, error)
 }

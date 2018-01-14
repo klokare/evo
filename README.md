@@ -1,41 +1,28 @@
-#EVO by klokare
+evo [![MIT Licence](https://badges.frapsoft.com/os/mit/mit.png?v=103)](https://opensource.org/licenses/mit-license.php)[![Coverage Status](https://coveralls.io/repos/github/klokare/evo/badge.svg?branch=master)](https://coveralls.io/github/klokare/evo?branch=master) [![GoDoc](https://godoc.org/github.com/klokare/evo?status.svg)](https://godoc.org/github.com/klokare/evo)
+====
 
-![Alt Text](https://github.com/klokare/evo/raw/master/gopher.png)
+**evo** is neuroevolution framework based upon Dr. Kenneth Stanley's [NEAT](https://www.cs.ucf.edu/~kstanley/neat.html) and subsequent extensions. Built from the ground up from the research papers and online articles, this implementation strives to be performant and extensible. See [the wiki](https://github.com/klokare/evo/wiki) for more details.
 
-This a Go implementation of NeuralEvolution of Augmenting Topologies (NEAT). From the NEAT F.A.Q.
+> NOTE: This is the second incarnation of EVO. Having survived the growing pains of the original, I decided to update the library based on my experience and continued reading. The prior version is archived under the archive-20180109 branch.
 
-NEAT stands for NeuroEvolution of Augmenting Topologies. It is a method for evolving artificial neural networks with a genetic algorithm. NEAT implements the idea that it is most effective to start evolution with small, simple networks and allow them to become increasingly complex over generations. That way, just as organisms in nature increased in complexity since the first cell, so do neural networks in NEAT. This process of continual elaboration allows finding highly sophisticated and complex neural networks.
+## Installing
+To start using EVO, install Go and run `go get`:
 
-More information will be provided on [this blog](https://medium.com/@hummerb/evo-by-klokare-new-library-same-concept-9eff96126ec0#.rywgvow3a).
-
-## Installation
-
-```bash
-go get github.com/klokare/evo
+```sh
+$ go get github.com/klokare/evo/...
 ```
 
-## Running an experiment
-The EVO library includes the XOR experiment in the `x/examples/xor` directory. The configuration is stored in the xor-config.json file which can be edited directly or can be overriden with command line flags. The XOR example makes use of several of the extensions (those packages and utilities in the "x" directory) which simplify the set up and execution of an experiment. More information related to these will appear on the blog shortly. 
+For further information on using, see the examples and peruse [the wiki](https://github.com/klokare/evo/wiki).
 
-By default, the XOR experiment will output to the console.
-```bash
-go run xor.go
-```
-
-You can override the number of trials (set to 10 in the configuration file) using the `-trials 2` flag (replacing 2 with the number of desired trials).
-
-The extension library also contains a web application which makes working with multiple runs of an expermiment much nicer. First, launch the web server:
-```bash
-cd $GOPATH/src/github.com/klokare/evo/x/web/cmd/server
-go run *.go -db-path evoweb.db
-```
-
-The default port is 2016. Launch a web browser and point it to http://localhost:2016
-
-Now, in another terminal window, run the XOR example using additional command-line flags (or set in the xor-config.json file):
-```bash
-cd $GOPATH/src/github.com/klokare/evo/x/examples/xor
-go run xor.go -web-url http://localhost:2016
-```
-
-There will be more information about using the web application on the blog soon.
+## Version history and upcoming releases
+Version|Description
+-------|-----------
+0.1|core library and tests (completed)
+0.2|default configurer
+0.3|default network and translator
+0.4|NEAT-equivalent package and XOR experiment
+0.5|phased mutator and OCR experiment
+0.6|HyperNEAT package and boxes experiment
+0.7|ES-HyperNEAT package and mazes experiment
+0.8|novelty package and updated mazes experiment
+0.9|real-time package

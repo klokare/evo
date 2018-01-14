@@ -1,34 +1,51 @@
 package evo
 
-// A Network is a black box that processes a set of inputs and returns a set of outputs
+import "math"
+
+// A Network provides the ability to process a set of inputs and returns the outputs
 type Network interface {
-	Activate([]float64) []float64
+	Activate([]float64) ([]float64, error)
 }
 
-// NeuronType defines the type of neuron to create
-type NeuronType byte
+// Neuron is the type of neuron to create within the network
+type Neuron byte
 
-// Predfined neuron types
+// Complete list of neuron types
 const (
-	Bias NeuronType = iota + 1
-	Input
+	Input Neuron = iota + 1
 	Hidden
 	Output
 )
 
-// ActivationType defines the type of activation function to use for the neuron
-type ActivationType byte
+func (n Neuron) String() string {
+	switch n {
+	case Input:
+		return "input"
+	case Hidden:
+		return "hidden"
+	case Output:
+		return "output"
+	default:
+		return "unknown"
+	}
+}
 
-// Predfined activation types
+// Activation is the type of activation function to use with the neuron
+type Activation byte
+
+// Known list of activation types
 const (
-	Direct ActivationType = iota + 1
+	Direct Activation = iota + 1
 	Sigmoid
 	SteepenedSigmoid
 	Tanh
 	InverseAbs
+	Sin
+	Gauss
+	ReLU
 )
 
-func (a ActivationType) String() string {
+func (a Activation) String() string {
 	switch a {
 	case Direct:
 		return "direct"
@@ -40,12 +57,52 @@ func (a ActivationType) String() string {
 		return "tanh"
 	case InverseAbs:
 		return "inverse-abs"
+	case Sin:
+		return "sin"
+	case Gauss:
+		return "gauss"
+	case ReLU:
+		return "relu"
 	default:
 		return "unknown"
 	}
 }
 
-// ActivationTypes is a list of available activations.
-var (
-	ActivationTypes = []ActivationType{Direct, Sigmoid, SteepenedSigmoid, Tanh, InverseAbs}
-)
+// Activate the neuron using the appropriate transformation function.
+func (a Activation) Activate(x float64) float64 {
+	switch a {
+	case Direct:
+		return x
+	case Sigmoid:
+		return 1.0 / (1.0 + math.Exp(-x))
+	case SteepenedSigmoid:
+		return 1.0 / (1.0 + math.Exp(-4.9*x))
+	case Tanh:
+		return math.Tanh(x)
+	case InverseAbs:
+		return x / (1.0 + math.Abs(x))
+	case Sin:
+		return math.Sin(x)
+	case Gauss:
+		return math.Exp(-2.0 * x * x)
+	case ReLU:
+		if x > 0 {
+			return x
+		}
+		return 0
+	default:
+		panic("unknown activation")
+	}
+}
+
+// Activations provides map of activation functions by name
+var Activations = map[string]Activation{
+	"direct":           Direct,
+	"sigmoid":          Sigmoid,
+	"steepenedsigmoid": SteepenedSigmoid,
+	"tanh":             Tanh,
+	"inverseabs":       InverseAbs,
+	"sin":              Sin,
+	"gauss":            Gauss,
+	"relu":             ReLU,
+}

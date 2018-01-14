@@ -1,533 +1,1052 @@
 package evo
 
 import (
-	"fmt"
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
 	"testing"
-
-	. "github.com/smartystreets/goconvey/convey"
+	"time"
 )
 
+// Things to test in Run
+// 1. If context does not end early and there are no errors or solution, it should run for n iterations
+// 2. If solution is found, the experiment should end early returning after the whole population's results are processed
+// 3. If the context completes before iterations are done, the experiment should end early
 func TestExperimentRun(t *testing.T) {
-	Convey("Given an expriement, a population and a target number of iterations", t, func() {
-		h1 := &mockCrosser{}
-		h2 := &mockMutator{change: true}
-		h3 := &mockSearcher{}
-		h4 := &mockSelector{keep: 0, parents: 10}
-		h5 := &mockSpeciater{}
-		h6 := &mockTranscriber{}
-		h7 := &mockTranslator{}
-		h8 := &genWatcher{}
-		e := &Experiment{
-			Crosser:     h1,
-			Mutator:     h2,
-			Searcher:    h3,
-			Selector:    h4,
-			Speciater:   h5,
-			Transcriber: h6,
-			Translator:  h7,
-			Watcher:     h8,
-		}
-		p := Population{
-			Generation: 1,
-			Species: []Species{
-				{ID: 1},
-			},
-			Genomes: []Genome{
-				{ID: 1, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 2, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 3, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 4, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 5, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 6, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 7, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 8, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 9, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-				{ID: 10, SpeciesID: 1, Encoded: Substrate{Nodes: make([]Node, 2)}},
-			},
-		}
-		n := 3
-		Convey("When running the experiment", func() {
-			Convey("When there are no errors or solutions found", func() {
-				err := Run(e, p, n)
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("Each helper should have been called", func() {
-					So(h1.called, ShouldBeTrue)
-					So(h2.called, ShouldBeTrue)
-					So(h3.called, ShouldBeTrue)
-					So(h4.called, ShouldBeTrue)
-					So(h5.called, ShouldBeTrue)
-					So(h6.called, ShouldBeTrue)
-					So(h7.called, ShouldBeTrue)
-					So(h8.called, ShouldBeTrue)
-				})
-				Convey("The generation should have advanced n-1 times", func() {
-					So(h8.generation, ShouldEqual, 3)
-				})
-			})
-			Convey("When there is a solution in the second iteration", func() {
-				h3.solvedID = 11
-				err := Run(e, p, n)
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("The generation should have advanced by 1", func() {
-					So(h8.generation, ShouldEqual, 2)
-				})
-			})
-			Convey("When there was an error advancing", func() {
-				h1.error = true
-				err := Run(e, p, n)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The generation should not have advanced n times", func() {
-					So(h8.generation, ShouldBeLessThan, 3)
-				})
-			})
 
-			Convey("When there was an error transcribing", func() {
-				h6.error = true
-				err := Run(e, p, n)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The generation should not have advanced n times", func() {
-					So(h8.generation, ShouldBeLessThan, 3)
-				})
-			})
-			Convey("When there was an error translating", func() {
-				h7.error = true
-				err := Run(e, p, n)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The generation should not have advanced n times", func() {
-					So(h8.generation, ShouldBeLessThan, 3)
-				})
-			})
-			Convey("When there was an error searching", func() {
-				h3.error = true
-				err := Run(e, p, n)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The generation should not have advanced n times", func() {
-					So(h8.generation, ShouldBeLessThan, 3)
-				})
-			})
-			Convey("When there was an error watching", func() {
-				h8.error = true
-				err := Run(e, p, n)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The generation should not have advanced n times", func() {
-					So(h8.generation, ShouldBeLessThan, 3)
-				})
-			})
-
-		})
-	})
-}
-func TestExperimentInitIDs(t *testing.T) {
-	Convey("Given an experiment and a population", t, func() {
-		e := &Experiment{}
-		p := Population{
-			Genomes: []Genome{
-				{ID: 5}, {ID: 4}, {ID: 7},
-			},
-			Species: []Species{
-				{ID: 11}, {ID: 12},
-			},
-		}
-		Convey("When initialising the ID sequences", func() {
-			e.initIDs(p)
-			Convey("The genome ID sequence should equal the max genome ID", func() {
-				So(e.genomeID, ShouldEqual, 7)
-			})
-			Convey("The species ID sequence should equal the max species ID", func() {
-				So(e.speciesID, ShouldEqual, 12)
-			})
-		})
-	})
-}
-
-func TestExperimentAdvance(t *testing.T) {
-	Convey("Given an experiment with a selector and a population", t, func() {
-		s := &mockSelector{keep: 2, parents: 8}
-		h := &mockSpeciater{}
-		c := &mockCrosser{}
-		m := &mockMutator{}
-		e := &Experiment{Crosser: c, Mutator: m, Selector: s, Speciater: h}
-		p := &Population{Generation: 2, Genomes: make([]Genome, 10)}
-		Convey("When advancing the the experiment", func() {
-			Convey("When there is no error", func() {
-				err := e.advance(p)
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("Total genomes should be the same length as the population's genomes", func() {
-					So(len(p.Genomes), ShouldEqual, 10)
-				})
-				Convey("The population's generation should advance", func() {
-					So(p.Generation, ShouldEqual, 3)
-				})
-				Convey("The speciater should have been called", func() { So(h.called, ShouldBeTrue) })
-			})
-			Convey("When there are no parents", func() {
-				s.parents = 0
-				s.keep = 10
-				e.advance(p)
-				Convey("The population's generation should not advance", func() {
-					So(p.Generation, ShouldEqual, 2)
-				})
-			})
-			Convey("When there are not enough offspring", func() {
-				s.parents = 5
-				err := e.advance(p)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-			})
-			Convey("When there is an error", func() {
-				s.error = true
-				err := e.advance(p)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-			})
-		})
-	})
-}
-
-func TestExperimentProcreate(t *testing.T) {
-	Convey("Given an experiment witha a crosser and mutator and some genome couples", t, func() {
-		c := &mockCrosser{}
-		m := &mockMutator{change: true}
-		e := &Experiment{
-			Crosser:  c,
-			Mutator:  m,
-			genomeID: 5,
-		}
-		gss := make([][]Genome, 4)
-		for i := 0; i < len(gss); i++ {
-			gss[i] = make([]Genome, 1)
-		}
-		Convey("When creating offspring", func() {
-			Convey("When there are no errors", func() {
-				os, err := e.procreate(gss)
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("The number of offspring should equal the number of couples", func() {
-					So(len(os), ShouldEqual, len(gss))
-				})
-				Convey("The offspring should have distinct, unique ids", func() {
-					ids := []int{6, 7, 8, 9}
-					for _, g := range os {
-						So(ids, ShouldContain, g.ID)
-					}
-				})
-				Convey("The mutator should have been called on the offspring", func() {
-					for _, g := range os {
-						So(m.changedIDs, ShouldContain, g.ID)
-					}
-				})
-			})
-			Convey("When there is an error", func() {
-				c.error = true
-				_, err := e.procreate(gss)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-			})
-		})
-	})
-}
-
-func TestExperimentTranscribe(t *testing.T) {
-	Convey("Given an experiment with a transcriber and genomes", t, func() {
-		h := &mockTranscriber{}
-		e := &Experiment{Transcriber: h}
-		gs := []Genome{
-			{ID: 1, Encoded: Substrate{Nodes: make([]Node, 3)}},
-			{ID: 2, Encoded: Substrate{Nodes: make([]Node, 5)}},
-		}
-		Convey("When transcribing the genomes", func() {
-			Convey("When there is no error", func() {
-				err := e.transcribe(gs)
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("The genome's decoded substrate should not be empty", func() {
-					for _, g := range gs {
-						So(len(g.Encoded.Nodes), ShouldBeGreaterThan, 0)
-					}
-				})
-			})
-			Convey("When there is an error transcribing", func() {
-				h.error = true
-				err := e.transcribe(gs)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-			})
-		})
-	})
-}
-
-func TestExperimentTranslate(t *testing.T) {
-	Convey("Given an experiment with a translator and genomes", t, func() {
-		h := &mockTranslator{}
-		e := &Experiment{Translator: h}
-		gs := []Genome{
-			{ID: 1, Traits: []float64{0.1, 0.2}, Decoded: Substrate{Nodes: make([]Node, 1)}},
-			{ID: 2, Traits: []float64{0.2, 0.3}, Decoded: Substrate{Nodes: make([]Node, 1)}},
-		}
-
-		Convey("When translating genomes into phenomes", func() {
-			Convey("When there was no error in any translation", func() {
-				ps, err := e.translate(gs)
-				Convey("There should not be an error", func() { So(err, ShouldBeNil) })
-				Convey("Each genome should have a phenome with the matching traits", func() {
-					for _, g := range gs {
-						found := false
-						for _, p := range ps {
-							if p.ID == g.ID {
-								found = true
-								So(p.Traits, ShouldResemble, g.Traits)
-							}
-						}
-						So(found, ShouldBeTrue)
-					}
-				})
-				Convey("Each phenome should have a network", func() {
-					for _, p := range ps {
-						So(p.Network, ShouldNotBeNil)
-					}
-				})
-			})
-			Convey("When there was an error during a translation", func() {
-				h.error = true
-				_, err := e.translate(gs)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-			})
-			Convey("When a genome does not have a decoded substrate", func() {
-				gs[0].Decoded = Substrate{}
-				ps, err := e.translate(gs)
-				Convey("There should be an error", func() { So(err, ShouldNotBeNil) })
-				Convey("The phenome for that genome should have no network", func() {
-					for _, p := range ps {
-						if p.ID == gs[0].ID {
-							So(p.Network, ShouldBeNil)
-							break
-						}
-					}
-				})
-			})
-		})
-	})
-}
-
-func TestExperimentSearch(t *testing.T) {
-	Convey("Given an experiment and phenomes", t, func() {
-		s := &mockSearcher{}
-		e := &Experiment{Searcher: s}
-		ps := []Phenome{
-			{ID: 1}, {ID: 2}, {ID: 3},
-		}
-		Convey("When searching the phenomes", func() {
-			rs, err := e.Search(ps)
-			Convey("When there is no error", func() {
-				Convey("There should be no error", func() { So(err, ShouldBeNil) })
-				Convey("There should be results for the phenomes", func() {
-					for _, p := range ps {
-						found := false
-						for _, r := range rs {
-							if r.ID == p.ID {
-								found = true
-								break
-							}
-						}
-						So(found, ShouldBeTrue)
-					}
-				})
-			})
-			Convey("When there is an error", func() {
-				s.errorID = 3
-				_, err = e.Search(ps)
-				Convey("An error should be returned", func() {
-					So(err, ShouldNotBeNil)
-				})
-			})
-		})
-	})
-}
-
-func TestExperimentUpdate(t *testing.T) {
-	Convey("Given genomes and results", t, func() {
-		gs := []Genome{
-			{ID: 1, Fitness: 1.0, Novelty: 2.0},
-			{ID: 2, Fitness: 2.0, Novelty: 3.0},
-		}
-		rs := []Result{
-			{ID: 1, Fitness: 3.0, Novelty: 4.0},
-			{ID: 2, Fitness: 5.0, Novelty: 6.0},
-		}
-		Convey("When updating the genomes and there are no solutions or errors", func() {
-			solved, err := update(gs, rs)
-			Convey("Solved should be false", func() { So(solved, ShouldBeFalse) })
-			Convey("Error should be nil", func() { So(err, ShouldBeNil) })
-			Convey("The genomes' fitnesses and novelty should be updated", func() {
-				So(gs[0].Fitness, ShouldEqual, 3.0)
-				So(gs[0].Novelty, ShouldEqual, 4.0)
-				So(gs[1].Fitness, ShouldEqual, 5.0)
-				So(gs[1].Novelty, ShouldEqual, 6.0)
-			})
-		})
-		Convey("When updating the genomes and there is a solution", func() {
-			rs[0].Solved = true
-			solved, _ := update(gs, rs)
-			Convey("Solved should be true", func() { So(solved, ShouldBeTrue) })
-		})
-		Convey("When updating the genomes and there is an error", func() {
-			rs[0].Error = fmt.Errorf("Error in evaluation")
-			_, err := update(gs, rs)
-			Convey("Error should not be nil", func() { So(err, ShouldNotBeNil) })
-		})
-	})
-}
-
-func TestExperimentStagnate(t *testing.T) {
-	Convey("Given a population", t, func() {
-		p := Population{
-			Species: []Species{
-				{ID: 1, Fitness: 4.0, Stagnation: 2},
-				{ID: 2, Fitness: 3.0, Stagnation: 4},
-			},
-			Genomes: []Genome{
-				{ID: 5, SpeciesID: 1, Fitness: 3.0},
-				{ID: 6, SpeciesID: 2, Fitness: 5.0},
-			},
-		}
-		Convey("When the species does not improve", func() {
-			stagnate(&p)
-			Convey("The species' stagnation should increment by 1", func() {
-				So(p.Species[0].Stagnation, ShouldEqual, 3)
-			})
-			Convey("The species' fitness should not change", func() {
-				So(p.Species[0].Fitness, ShouldEqual, 4.0)
-			})
-		})
-		Convey("When calculating stagnation", func() {
-			stagnate(&p)
-			Convey("When the species improves", func() {
-				Convey("The stagnation should be set to 0", func() {
-					So(p.Species[1].Stagnation, ShouldEqual, 0)
-				})
-				Convey("The species should show the new fitness", func() {
-					So(p.Species[1].Fitness, ShouldEqual, 5.0)
-				})
-			})
-		})
-	})
-}
-
-type mockCrosser struct {
-	called bool
-	error  bool
-}
-
-func (h *mockCrosser) Cross(ps ...Genome) (Genome, error) {
-	var err error
-	if h.error {
-		err = fmt.Errorf("error crossing genomes")
-	}
-	h.called = true
-	o := Genome{}
-	if len(ps[0].Encoded.Nodes) > 0 {
-		o.Encoded.Nodes = make([]Node, len(ps[0].Encoded.Nodes))
-		copy(o.Encoded.Nodes, ps[0].Encoded.Nodes)
-	}
-	if len(ps[0].Encoded.Conns) > 0 {
-		o.Encoded.Conns = make([]Conn, len(ps[0].Encoded.Conns))
-		copy(o.Encoded.Conns, ps[0].Encoded.Conns)
+	var options = []Option{
+		WithConfiguration(&MockConfigurer{}),
+		WithByFitness(),
+		WithMockCrosser(),
+		WithMockEvaluator(),
+		WithMockPopulator(),
+		WithMockSearcher(),
+		WithMockSelector(),
+		WithMockSpeciator(),
+		WithMockTranscriber(),
+		WithMockTranslator(),
+		WithMockMutators(),
 	}
 
-	return o, err
+	// There error from a failed option should be propogated up
+	t.Run("failed option", testFailedOption(options))
+
+	// There should be an error if the required helpers are not present. We can test this by
+	// iterating the options, skipping each one incrementally, and testing a Run.
+	t.Run("missing helper", testMissingHelper(options))
+
+	// When running with a new population, IDs should be setand speciator called
+	t.Run("initial population", testInitialPopulation(options))
+
+	// When running with a restored popuation, IDs should be set and speciator called
+	t.Run("restored population", testRestoredPopulation(options))
+
+	// If the iterations > 0, evalaute should be called
+	t.Run("evaluate", testEvaluate(options))
+
+	// If the iterations = 1, advance should be not be called
+	t.Run("no advance", testNoAdvance(options))
+
+	// If the iterations > 1, advance should be called
+	t.Run("advance", testAdvance(options))
+
+	// If there is no solution or errors, the experiment should run for N iterations
+	t.Run("complete iterations", testIterations(options))
+
+	// There are subscriptions
+	t.Run("subscriptions", testSubscriptions(options))
+
+	// There are subscriptions but one fails
+	t.Run("failed callbacks", testFailedCallback(options))
+
+	// If the context ends, the experiment should stop stop early.
+	t.Run("context ending", testEndContext(options))
+
+	// If a solution is found, the experiment should stop early
+	t.Run("solution found", testSolutionFound(options))
+
+	// If any of the major helpers fails, the experiment should stop early with an error.
+	t.Run("helper errors", testHelperErrors(options))
+
 }
 
-type mockSearcher struct {
-	errorID  int
-	solvedID int
-	called   bool
-	error    bool
-}
-
-func (m *mockSearcher) Search(ps []Phenome) (rs []Result, err error) {
-	m.called = true
-	rs = make([]Result, len(ps))
-	for i, p := range ps {
-		rs[i] = Result{ID: p.ID}
-		if p.ID == m.errorID {
-			err = fmt.Errorf("error during search")
-		}
-		if p.ID == m.solvedID {
-			rs[i].Solved = true
+func testFailedOption(options []Option) func(*testing.T) {
+	return func(t *testing.T) {
+		failing := make([]Option, len(options))
+		copy(failing, options)
+		failing = append(failing, WithFailedOption())
+		_, err := Run(context.Background(), 10, failing...)
+		if err == nil {
+			t.Error("error for failed option expected.")
+		} else if err.Error() != "option failed" {
+			t.Errorf("unexpected error returned: expected \"%s\", actual \"%s\"", "option failed", err)
 		}
 	}
-	if m.error {
-		err = fmt.Errorf("error during search")
+}
+
+func WithFailedOption() Option {
+	return func(e *Experiment) error {
+		return errors.New("option failed")
+	}
+}
+
+func testMissingHelper(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		for i := 1; i < len(options); i++ { // Skip the configurer
+			missing := make([]Option, len(options))
+			copy(missing, options)
+			missing = append(missing[:i], missing[i+1:]...)
+			_, err := Run(context.Background(), 10, missing...)
+			if err == nil {
+				t.Errorf("error for missing helpers expected when dropping %d.", i)
+			} else if err != ErrMissingRequiredHelper {
+				t.Errorf("unexpected error returned for option %d: expected \"%s\", actual \"%s\"",
+					i, ErrMissingRequiredHelper, err)
+			}
+		}
+	}
+}
+
+// When run with an initial population and zero iterations should return the initial population,
+// after being speciated. The internal ID sequence for new genomes should be greater than the
+// last genome of the seed population.
+func testInitialPopulation(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Expected population is the initial population from the mock populator.
+		exp, _ := new(MockPopulator).Populate(context.Background())
+
+		// Run the experiment for 0 iterations
+		pop, err := Run(context.Background(), 0, options...)
+		if err != nil {
+			t.Errorf("unxpected error: %v", err)
+			return
+		}
+
+		// The popoulation size should be the same
+		if len(pop.Genomes) != len(exp.Genomes) {
+			t.Errorf("incorrect number of genomes: expected %d, actual %d", len(exp.Genomes), len(pop.Genomes))
+		}
+
+		// The species IDs should be assigned. Initial population from the mock populator sends in
+		// genomes with species ID unset so we can just look for IDs > 0 as the mock speciator
+		// starts species' IDs at 1.
+		for _, g := range pop.Genomes {
+			if g.SpeciesID == 0 {
+				t.Errorf("incorrect species assignment. expected >0, actual 0")
+			}
+		}
+
+		// The experiment's internal genome ID sequence should be greater than or equal the greatest
+		// from the original population
+		var max int64
+		for _, g := range exp.Genomes {
+			if max < g.ID {
+				max = g.ID
+			}
+		}
+		if z.lastGID == nil {
+			t.Errorf("genome sequence not initialised")
+		} else if *z.lastGID < max {
+			t.Errorf("incorrect genome ID sequence: expected %d or greater, actual %d", max, *z.lastGID)
+		}
+	}
+}
+
+// Basically the same as the intial population test.
+func testRestoredPopulation(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Add the restorer to use instead of the populator
+		options = append(options, WithMockRestorer())
+
+		// Expected population is the initial population from the mock populator.
+		exp, _ := new(MockRestorer).Populate(context.Background())
+
+		// Run the experiment for 0 iterations
+		pop, err := Run(context.Background(), 0, options...)
+		if err != nil {
+			t.Errorf("unxpected error: %v", err)
+			return
+		}
+
+		// The popoulation size should be the same
+		if len(pop.Genomes) != len(exp.Genomes) {
+			t.Errorf("incorrect number of genomes: expected %d, actual %d", len(exp.Genomes), len(pop.Genomes))
+		}
+
+		// The species IDs should be assigned. Initial population from the mock populator sends in
+		// genomes with species ID unset so we can just look for IDs > 0 as the mock speciator
+		// starts species' IDs at 1.
+		for _, g := range pop.Genomes {
+			if g.SpeciesID == 0 {
+				t.Errorf("incorrect species assignment. expected >0, actual 0")
+			}
+		}
+
+		// The experiment's internal genome ID sequence should be greater than or equal the greatest
+		// from the original population
+		var max int64
+		for _, g := range exp.Genomes {
+			if max < g.ID {
+				max = g.ID
+			}
+		}
+		if z.lastGID == nil {
+			t.Errorf("genome sequence not initialised")
+		} else if *z.lastGID < max {
+			t.Errorf("incorrect genome ID sequence: expected %d or greater, actual %d", max, *z.lastGID)
+		}
+	}
+}
+
+// test evaluation routine
+func testEvaluate(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Take a copy of the initial population and record number of genomes and species
+		pop, _ := new(MockPopulator).Populate(context.Background())
+		gcnt := len(pop.Genomes)
+
+		new(MockSpeciator).Speciate(context.Background(), &pop)
+		scnt := len(pop.Species)
+
+		// Run the experiment for 1 iteration
+		pop, _ = Run(context.Background(), 1, options...)
+
+		// Evaluation should not change the number of genomes or species
+		if len(pop.Genomes) != gcnt {
+			t.Errorf("genome count should not have changed: expected %d, actual %d", gcnt, len(pop.Genomes))
+		}
+		if len(pop.Species) != scnt {
+			t.Errorf("species count should not have changed: expected %d, actual %d", scnt, len(pop.Species))
+		}
+
+		// The transcriber should be called for each genome (check count since IDs are not passed)
+		trsc := z.Transcriber.(*MockTranscriber)
+		if trsc.Called != gcnt {
+			t.Errorf("incorrect number of calls to transcriber: expected %d, actual %d", gcnt, trsc.Called)
+		}
+
+		// The translator should be called for each genome (check count since IDs are not passed)
+		// TODO: If the transcriber produces a substrate for a valid, but non-functioning network
+		// (e.g., no connections), should the translator still be invoked?
+		tran := z.Translator.(*MockTranslator)
+		if tran.Called != gcnt {
+			t.Errorf("incorrect number of calls to translator: expected %d, actual %d", gcnt, tran.Called)
+		}
+		// The searcher should be called
+		srch := z.Searcher.(*MockSearcher)
+		if srch.Called == 0 {
+			t.Errorf("incorrect number of calls to searcher: expected: 1, actual: 0")
+		}
+
+		// The evaluator should be called for each genome
+		// TODO: If the translator was not invoked, should the genome be evaluated or just given
+		// the default minimum fitness and zero novelty?
+		eval := z.Evaluator.(*MockEvaluator)
+		if eval.Called == 0 {
+			t.Errorf("incorrect number of calls to evaluator: expected: %d, actual: %d", gcnt, eval.Called)
+		}
+
+		// Genomes should be updated. MockEvaluator sets the fitness to 1 / ID and novelty to ID.
+		// This iteration does not include a solution
+		for _, g := range pop.Genomes {
+			fit := 1.0 / float64(g.ID)
+			if fit != g.Fitness {
+				t.Errorf("incorrect fitness for genome %d: expected %f, actual %f", g.ID, fit, g.Fitness)
+			}
+			nov := float64(g.ID)
+			if nov != g.Novelty {
+				t.Errorf("incorrect novelty for genome %d: expected %f, actual %f", g.ID, nov, g.Novelty)
+			}
+		}
+
+		// Species champion should reflect the most fit (that's the comparer we are using)
+		for _, s := range pop.Species {
+
+			// Find the species champion in the population
+			var c Genome
+			for _, g := range pop.Genomes {
+				if g.ID == s.Champion {
+					c = g
+					break
+				}
+			}
+			if c.ID == 0 {
+				t.Errorf("incorrect champion id for species %d: expected %d, actual 0", s.ID, s.Champion)
+			}
+
+			// There should not be another genome in the species that is more fit
+			for _, g := range pop.Genomes {
+				if g.SpeciesID == s.ID && g.ID != c.ID {
+					x := z.Comparer.Compare(c, g)
+					if x < 0 {
+						t.Errorf("incorrect champion selected for species %d: expected %d, actual %d", s.ID, g.ID, c.ID)
+					}
+				}
+			}
+		}
+	}
+}
+
+// tests that advance has not been called
+func testNoAdvance(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// No helpers related to advance should be called
+		_, _ = Run(context.Background(), 1, options...)
+
+		if z.Selector.(*MockSelector).Called > 0 {
+			t.Errorf("selector should not be called")
+		}
+		if z.Crosser.(*MockCrosser).Called > 0 {
+			t.Errorf("crosser should not be called")
+		}
+		if z.Mutators[0].(*MockStructureMutator).Called > 0 {
+			t.Errorf("mutator 0 should not be called")
+		}
+		if z.Mutators[1].(*MockWeightMutator).Called > 0 {
+			t.Errorf("mutator 1 should not be called")
+		}
+		if z.Selector.(*MockSelector).Called > 0 {
+			t.Errorf("selector should not be called")
+		}
+		if z.Speciator.(*MockSpeciator).Called > 1 { // Called once when experiment starts
+			t.Errorf("speciator should not be called")
+		}
+	}
+}
+
+func testAdvance(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Remember what the initial population looks like
+		var maxID int64
+		pop, _ := new(MockPopulator).Populate(context.Background())
+		size := len(pop.Genomes)
+		for _, g := range pop.Genomes {
+			if maxID < g.ID {
+				maxID = g.ID
+			}
+		}
+
+		// Run the experiment for 2 iterations
+		pop, _ = Run(context.Background(), 2, options...)
+
+		// Population should have same size
+		if len(pop.Genomes) != size {
+			t.Errorf("incorrect population size: expected %d, actual %d", size, len(pop.Genomes))
+		}
+
+		// Selector should have been called
+		if z.Selector.(*MockSelector).Called == 0 {
+			t.Errorf("selector should have be called")
+		}
+
+		// NOTE: The mock version continues the first 2 genomes and makes the remaining genomes single parents
+
+		//Crosser should have been called for each parenting group
+		if z.Crosser.(*MockCrosser).Called != size-2 {
+			t.Errorf("incorrect number of calls to crosser: expected %d, actual %d", size-2, z.Crosser.(*MockCrosser).Called)
+		}
+
+		// Structure mutator should have been called evey time (first in our list)
+		if z.Mutators[0].(*MockStructureMutator).Called != size-2 {
+			t.Errorf("incorrect number of calls to structure mutator: expected %d, actual %d", size-2, z.Mutators[0].(*MockStructureMutator).Called)
+		}
+
+		// Weight mutator should only be called for the even ID genomes as a structural mutation should stop others
+		if z.Mutators[1].(*MockWeightMutator).Called != (size-2)/2 {
+			t.Errorf("incorrect number of calls to weight mutator: expected %d, actual %d", (size-2)/2, z.Mutators[1].(*MockWeightMutator).Called)
+		}
+
+		// Speciator should have been called
+		if z.Speciator.(*MockSpeciator).Called < 2 { // Called once after initial population
+			t.Errorf("selector should have be called")
+		}
+	}
+}
+
+func testIterations(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Run the experiment
+		n := 5
+		_, _ = Run(context.Background(), n, options...)
+
+		// The searcher should have been called the same number of times as iterations
+		if z.Searcher.(*MockSearcher).Called != n {
+			t.Errorf("incorrect number of calls for searcher: expected %d, actual %d", n, z.Searcher.(*MockSearcher).Called)
+		}
+
+	}
+}
+
+func testHelperErrors(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+		t.Run("crosser", testHelperError(original, func(e *Experiment) error {
+			e.Crosser = &MockCrosser{HasError: true}
+			return nil
+		}))
+		t.Run("evaluator", testHelperError(original, func(e *Experiment) error {
+			e.Evaluator = &MockEvaluator{HasError: true}
+			return nil
+		}))
+		t.Run("populator", testHelperError(original, func(e *Experiment) error {
+			e.Populator = &MockPopulator{HasError: true}
+			return nil
+		}))
+		t.Run("searcher", testHelperError(original, func(e *Experiment) error {
+			e.Searcher = &MockSearcher{HasError: true}
+			return nil
+		}))
+		t.Run("selector", testHelperError(original, func(e *Experiment) error {
+			e.Selector = &MockSelector{HasError: true}
+			return nil
+		}))
+		t.Run("speciator initial", testHelperError(original, func(e *Experiment) error {
+			e.Speciator = &MockSpeciator{HasError: true}
+			return nil
+		}))
+		t.Run("speciator advance", testHelperError(original, func(e *Experiment) error {
+			e.Speciator = &MockSpeciator{HasError2: true}
+			return nil
+		}))
+		t.Run("transcriber", testHelperError(original, func(e *Experiment) error {
+			e.Transcriber = &MockTranscriber{HasError: true}
+			return nil
+		}))
+		t.Run("translator", testHelperError(original, func(e *Experiment) error {
+			e.Translator = &MockTranslator{HasError: true}
+			return nil
+		}))
+		t.Run("mutator 0", testHelperError(original, func(e *Experiment) error {
+			e.Mutators[0] = &MockStructureMutator{HasError: true}
+			return nil
+		}))
+		t.Run("mutator 1", testHelperError(original, func(e *Experiment) error {
+			e.Mutators[1] = &MockWeightMutator{HasError: true}
+			return nil
+		}))
+	}
+}
+
+func testHelperError(original []Option, fail Option) func(*testing.T) {
+	return func(t *testing.T) {
+		options := make([]Option, len(original), len(original)+1)
+		copy(options, original)
+		options = append(options, fail)
+		_, err := Run(context.Background(), 2, options...)
+		if err == nil {
+			t.Errorf("expected error")
+		}
+	}
+}
+
+func testSubscriptions(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add options to subscribe
+		var evaluated, advanced int
+		options = append(options,
+			func(e *Experiment) error {
+				e.Subscribe(Evaluated, func(context.Context, bool, Population) error {
+					evaluated++
+					return nil
+				})
+				return nil
+			},
+			func(e *Experiment) error {
+				e.Subscribe(Advanced, func(context.Context, bool, Population) error {
+					advanced++
+					return nil
+				})
+				return nil
+			},
+		)
+
+		// Run the experiment
+		_, _ = Run(context.Background(), 2, options...)
+
+		// The listeners should be called
+		if evaluated != 2 {
+			t.Errorf("incorrect count for evaluated: expected 2, actual %d", evaluated)
+		}
+		if advanced != 1 {
+			t.Errorf("incorrect count for advanced: expected 1, actual %d", advanced)
+		}
+	}
+}
+
+func testFailedCallback(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+		for _, event := range []Event{Evaluated, Advanced} {
+			// Work with a copy of the options
+			options := make([]Option, len(original))
+			copy(options, original)
+
+			// Add options to subscribe
+			options = append(options,
+				func(e *Experiment) error {
+					e.Subscribe(event, func(context.Context, bool, Population) error {
+						return errors.New("failed callback")
+					})
+					return nil
+				},
+			)
+
+			// Run the experiment
+			_, err := Run(context.Background(), 2, options...)
+			if err == nil {
+				t.Errorf("expected error from callback")
+			}
+		}
+	}
+}
+
+func testSolutionFound(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Add option that solves the experiment on second iteration
+		options = append(options, func(e *Experiment) error {
+			e.Evaluator = &MockEvaluator{HasSolve: true}
+			return nil
+		})
+
+		// Run the experiment
+		_, _ = Run(context.Background(), 5, options...)
+
+		// The searcher should have been called the same number of times as iterations
+		if z.Searcher.(*MockSearcher).Called == 5 {
+			t.Errorf("incorrect number of calls for searcher: expected <5, actual 5")
+		}
+
+	}
+}
+
+func testEndContext(original []Option) func(*testing.T) {
+	return func(t *testing.T) {
+
+		// Work with a copy of the options
+		options := make([]Option, len(original))
+		copy(options, original)
+
+		// Add an option to capture the experiment
+		var z *Experiment
+		options = append(options, func(e *Experiment) error {
+			z = e
+			return nil
+		})
+
+		// Create a cancelable context and add an option that cancels it after the first evaluation
+		ctx, cancel := context.WithCancel(context.Background())
+		options = append(options, func(e *Experiment) error {
+			e.Subscribe(Evaluated, func(context.Context, bool, Population) error {
+				cancel()
+				time.Sleep(1)
+				return nil
+			})
+			return nil
+		})
+
+		// Run the experiment
+		_, err := Run(ctx, 5, options...)
+
+		// There should be an error from the context
+		if err == nil {
+			t.Errorf("error from canceled context expected")
+		}
+
+		// The searcher should have been called the same number of times as iterations
+		if z.Searcher.(*MockSearcher).Called != 1 {
+			t.Errorf("incorrect number of calls for searcher: expected 1, actual %d", z.Searcher.(*MockSearcher).Called)
+		}
+	}
+}
+
+type MockCrosser struct {
+	Called   int
+	HasError bool
+}
+
+func (c *MockCrosser) Cross(ctx context.Context, parents ...Genome) (child Genome, err error) {
+	c.Called++
+	if c.HasError {
+		err = errors.New("mock transcriber error")
+		return
 	}
 	return
 }
 
-type mockSpeciater struct {
-	called bool
-}
-
-func (h *mockSpeciater) Speciate(*Population) error {
-	h.called = true
-	return nil
-}
-
-type mockSelector struct {
-	called        bool
-	error         bool
-	keep, parents int
-}
-
-func (h *mockSelector) Select(Population) ([]Genome, [][]Genome, error) {
-	var err error
-	if h.error {
-		err = fmt.Errorf("error selecting genomes")
+func WithMockCrosser() Option {
+	return func(e *Experiment) error {
+		e.Crosser = &MockCrosser{}
+		return nil
 	}
-	h.called = true
-	keep := make([]Genome, h.keep)
-	parents := make([][]Genome, h.parents)
+}
+
+type MockEvaluator struct {
+	Called   int
+	HasError bool
+	HasSolve bool
+}
+
+func (e *MockEvaluator) Evaluate(ctx context.Context, p Phenome) (r Result, err error) {
+	e.Called++
+	if e.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	r = Result{
+		ID:      p.ID,
+		Fitness: 1.0 / float64(p.ID),
+		Novelty: float64(p.ID),
+		Solved:  e.HasSolve,
+	}
+	return
+}
+
+func WithMockEvaluator() Option {
+	return func(e *Experiment) error {
+		e.Evaluator = &MockEvaluator{}
+		return nil
+	}
+}
+
+type MockStructureMutator struct {
+	Called   int
+	HasError bool
+}
+
+func (m *MockStructureMutator) Mutate(ctx context.Context, g *Genome) (err error) {
+	m.Called++
+	if m.HasError {
+		err = errors.New("mock structure mutator error")
+		return
+	}
+	// Add a new connection if ID is odd
+	if g.ID%2 == 1 {
+		g.Encoded.Conns = append(g.Encoded.Conns, Conn{
+			Source:  Position{Layer: 0.25, X: 0.25},
+			Target:  Position{Layer: 0.75, X: 0.75},
+			Weight:  1.23,
+			Enabled: true,
+		})
+	}
+	return
+}
+
+type MockWeightMutator struct {
+	Called   int
+	HasError bool
+}
+
+func (m *MockWeightMutator) Mutate(ctx context.Context, g *Genome) (err error) {
+	m.Called++
+	if m.HasError {
+		err = errors.New("mock weight mutator error")
+		return
+	}
+	if len(g.Encoded.Conns) > 0 {
+		g.Encoded.Conns[0].Weight += 0.001
+	}
+	return
+}
+
+func WithMockMutators() Option {
+	return func(e *Experiment) error {
+		e.Mutators = append(e.Mutators, &MockStructureMutator{}, &MockWeightMutator{})
+		return nil
+	}
+}
+
+type MockPopulator struct {
+	Called   int
+	HasError bool
+}
+
+func (m *MockPopulator) Populate(context.Context) (p Population, err error) {
+	m.Called++
+	if m.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	p = Population{
+		Species: []Species{{ID: 5}}, // Species do not persist in load
+		Genomes: []Genome{
+			{
+				ID: 3,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+			{
+				ID: 2,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.0, X: 0.5}, Neuron: Input, Activation: Direct},
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.0, X: 0.5}, Target: Position{Layer: 0.0, X: 0.5}, Enabled: false, Weight: 1.5},
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+			{
+				ID: 1,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+			{
+				ID: 4,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.0, X: 0.5}, Neuron: Input, Activation: Direct},
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.0, X: 0.5}, Target: Position{Layer: 0.0, X: 0.5}, Enabled: false, Weight: 1.5},
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+		},
+	}
+	return
+}
+
+func WithMockPopulator() Option {
+	return func(e *Experiment) error {
+		e.Populator = &MockPopulator{}
+		return nil
+	}
+}
+
+type MockRestorer struct {
+	Called   int
+	HasError bool
+}
+
+func (m *MockRestorer) Populate(context.Context) (p Population, err error) {
+	m.Called++
+	if m.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	p = Population{
+		Species: []Species{
+			{ID: 5},
+			{ID: 6},
+		}, // Species do not persist in load
+		Genomes: []Genome{
+			{
+				ID:        8,
+				SpeciesID: 5,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+			{
+				ID:        9,
+				SpeciesID: 6,
+				Encoded: Substrate{
+					Nodes: []Node{
+						{Position: Position{Layer: 0.0, X: 0.5}, Neuron: Input, Activation: Direct},
+						{Position: Position{Layer: 0.5, X: 0.5}, Neuron: Hidden, Activation: InverseAbs},
+						{Position: Position{Layer: 1.0, X: 0.5}, Neuron: Output, Activation: Sigmoid},
+					},
+					Conns: []Conn{
+						{Source: Position{Layer: 0.0, X: 0.5}, Target: Position{Layer: 0.0, X: 0.5}, Enabled: false, Weight: 1.5},
+						{Source: Position{Layer: 0.5, X: 0.5}, Target: Position{Layer: 1.0, X: 0.5}, Enabled: true, Weight: 2.5},
+					},
+				},
+			},
+		},
+	}
+	return
+}
+
+func WithMockRestorer() Option {
+	return func(e *Experiment) error {
+		e.Populator = &MockRestorer{}
+		return nil
+	}
+}
+
+type MockSearcher struct {
+	Called   int
+	HasError bool
+}
+
+func (s *MockSearcher) Search(ctx context.Context, e Evaluator, ps []Phenome) (rs []Result, err error) {
+	s.Called++
+	if s.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	rs = make([]Result, len(ps))
+	for i, p := range ps {
+		if rs[i], err = e.Evaluate(ctx, p); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func WithMockSearcher() Option {
+	return func(e *Experiment) error {
+		e.Searcher = &MockSearcher{}
+		return nil
+	}
+}
+
+type MockSelector struct {
+	Called                 int
+	HasError               bool
+	FailWithTooManyParents bool // Special case to check for incorrect population size
+}
+
+func (s *MockSelector) Select(ctx context.Context, p Population) (continuing []Genome, parents [][]Genome, err error) {
+	s.Called++
+	if s.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	continuing = p.Genomes[:2]
+	parents = make([][]Genome, len(p.Genomes)-2)
 	for i := 0; i < len(parents); i++ {
-		parents[i] = make([]Genome, 2)
+		parents[i] = []Genome{p.Genomes[i+2]}
 	}
-	return keep, parents, err
-}
-
-type mockTranscriber struct {
-	called bool
-	error  bool
-}
-
-func (h *mockTranscriber) Transcribe(s Substrate) (Substrate, error) {
-	var err error
-	if h.error {
-		err = fmt.Errorf("error transcribing substrate")
+	if s.FailWithTooManyParents {
+		parents = append(parents, continuing)
 	}
-	h.called = true
-	return s, err
+	return
 }
 
-type mockTranslator struct {
-	called bool
-	error  bool
-}
-
-func (h *mockTranslator) Translate(s Substrate) (Network, error) {
-	var err error
-	if h.error {
-		err = fmt.Errorf("Error during translation")
+func WithMockSelector() Option {
+	return func(e *Experiment) error {
+		e.Selector = &MockSelector{}
+		return nil
 	}
-	h.called = true
-	return &mockNetwork{}, err
 }
 
-type mockNetwork struct{}
-
-func (h *mockNetwork) Activate(inputs []float64) []float64 { return inputs }
-
-type genWatcher struct {
-	generation int
-	called     bool
-	error      bool
+type MockSpeciator struct {
+	Called    int
+	HasError  bool
+	HasError2 bool // fail on second iteration
+	SetChamp  bool // Sets the champion after intial speciation so we can test the decay call
 }
 
-func (h *genWatcher) Watch(p Population) error {
-	h.generation = p.Generation
-	h.called = true
-	if h.error {
-		return fmt.Errorf("error watching")
+func (s *MockSpeciator) Speciate(ctx context.Context, pop *Population) (err error) {
+	s.Called++
+	if s.HasError {
+		err = errors.New("mock transcriber error")
+		return
 	}
-	return nil
+
+	if s.Called > 1 && s.HasError2 {
+		err = errors.New("mock transcriber error 2")
+		return
+	}
+	if s.Called > 1 && s.SetChamp {
+		// Set to the known best so we can see decay happening
+		pop.Species[1].Champion = 1
+		pop.Species[1].Decay = 0.9
+	}
+	// Divide on complexity
+	for i, g := range pop.Genomes {
+		c := g.Complexity()
+		found := false
+		for _, s := range pop.Species {
+			if s.ID == int64(c) {
+				g.SpeciesID = s.ID
+				found = true
+				break
+			}
+		}
+		if !found {
+			s := Species{ID: int64(c)}
+			g.SpeciesID = s.ID
+			pop.Species = append(pop.Species, s)
+		}
+		pop.Genomes[i] = g
+	}
+	return
+}
+
+func WithMockSpeciator() Option {
+	return func(e *Experiment) error {
+		e.Speciator = &MockSpeciator{}
+		return nil
+	}
+}
+
+type MockTranslator struct {
+	Called   int
+	HasError bool
+}
+
+func (t *MockTranslator) Translate(context.Context, Substrate) (net Network, err error) {
+	t.Called++
+	if t.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	return &MockNetwork{}, nil
+}
+
+func WithMockTranslator() Option {
+	return func(e *Experiment) error {
+		e.Translator = &MockTranslator{}
+		return nil
+	}
+}
+
+type MockNetwork struct{}
+
+func (n *MockNetwork) Activate(inputs []float64) (outputs []float64, err error) {
+	return
+}
+
+type MockTranscriber struct {
+	Called   int
+	HasError bool
+}
+
+func (t *MockTranscriber) Transcribe(ctx context.Context, enc Substrate) (dec Substrate, err error) {
+	t.Called++
+	if t.HasError {
+		err = errors.New("mock transcriber error")
+		return
+	}
+	dec = enc // Just return the substrate
+	return
+}
+
+func WithMockTranscriber() Option {
+	return func(e *Experiment) error {
+		e.Transcriber = &MockTranscriber{}
+		return nil
+	}
+}
+
+type MockConfigurer struct{}
+
+func (c *MockConfigurer) Configure(items ...interface{}) (err error) {
+	data := `{"SpeciesDecayRate": 0.3}`
+	for _, item := range items {
+		if err = json.NewDecoder(bytes.NewBufferString(data)).Decode(item); err != nil {
+			return
+		}
+	}
+	return
 }

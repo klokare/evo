@@ -1,16 +1,8 @@
 package evo
 
-// A Population is the collection of genomes and species at a particular point in time
+// A Population is the collection of genomes and species for a given generation.
 type Population struct {
-	Generation int
-	Genomes    Genomes
-	Species    []Species
-}
-
-// Species is a collection of similar genomes
-type Species struct {
-	ID         int
-	Stagnation int
-	Fitness    float64
-	Example    Substrate
+	Generation int       // The population's generation number
+	Species    []Species // The population's collection of species. The ordering of these is not guranateed.
+	Genomes    []Genome  // The population's collection of genomes. The ordering of these is not guranateed.
 }
