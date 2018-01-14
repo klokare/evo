@@ -18,8 +18,8 @@ For further information on using, see the examples and peruse [the wiki](https:/
 Version|Description
 -------|-----------
 0.1|core library and tests (completed)
-0.2|default configurer
-0.3|default network and translator
+0.2|default configurer (completed)
+0.3|default network and translator (completed)
 0.4|NEAT-equivalent package and XOR experiment
 0.5|phased mutator and OCR experiment
 0.6|HyperNEAT package and boxes experiment
