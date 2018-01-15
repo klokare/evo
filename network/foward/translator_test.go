@@ -145,3 +145,14 @@ func TestTranslate(t *testing.T) {
 	}
 
 }
+
+func TestWithTranslator(t *testing.T) {
+	e := new(evo.Experiment)
+	err := WithTranslator()(e)
+	if err != nil {
+		t.Errorf("error was not expected: %v", err)
+	}
+	if _, ok := e.Translator.(*Translator); !ok {
+		t.Errorf("translator incorrectly set")
+	}
+}

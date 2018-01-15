@@ -78,3 +78,11 @@ func (t Translator) Translate(ctx context.Context, sub evo.Substrate) (net evo.N
 	net = z
 	return
 }
+
+// WithTranslator assigns a new translator to the experiment
+func WithTranslator() evo.Option {
+	return func(e *evo.Experiment) error {
+		e.Translator = new(Translator)
+		return nil
+	}
+}
