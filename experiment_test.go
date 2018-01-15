@@ -17,7 +17,7 @@ func TestExperimentRun(t *testing.T) {
 
 	var options = []Option{
 		WithConfiguration(&MockConfigurer{}),
-		WithByFitness(),
+		WithCompare(ByFitness),
 		WithMockCrosser(),
 		WithMockEvaluator(),
 		WithMockPopulator(),
@@ -319,7 +319,7 @@ func testEvaluate(original []Option) func(*testing.T) {
 			// There should not be another genome in the species that is more fit
 			for _, g := range pop.Genomes {
 				if g.SpeciesID == s.ID && g.ID != c.ID {
-					x := z.Comparer.Compare(c, g)
+					x := z.Compare(c, g)
 					if x < 0 {
 						t.Errorf("incorrect champion selected for species %d: expected %d, actual %d", s.ID, g.ID, c.ID)
 					}

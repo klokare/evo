@@ -1,499 +1,294 @@
 package evo
 
 import (
-	"reflect"
 	"testing"
 )
 
-func TestWithByFitness(t *testing.T) {
-
-	// Use the option
+func TestWithCompare(t *testing.T) {
+	fn := ByFitness
 	e := new(Experiment)
-	option := WithByFitness()
-	err := option(e)
-
-	// There should be no error
+	err := WithCompare(fn)(e)
 	if err != nil {
-		t.Errorf("there should be no error. actual %s", err)
+		t.Errorf("unexpected error: %v", err)
 	}
-
-	// The comparer should be set correctly
-	if _, ok := e.Comparer.(ByFitness); !ok {
-		t.Errorf("comparer not set properly: expected: ByFitness, actual %v", reflect.TypeOf(e.Comparer))
+	if e.Compare == nil {
+		t.Errorf("compare function not set properly")
 	}
 }
 
-func TestWithByNovelty(t *testing.T) {
-
-	// Use the option
-	e := new(Experiment)
-	option := WithByNovelty()
-	err := option(e)
-
-	// There should be no error
-	if err != nil {
-		t.Errorf("there should be no error. actual %s", err)
-	}
-
-	// The comparer should be set correctly
-	if _, ok := e.Comparer.(ByNovelty); !ok {
-		t.Errorf("comparer not set properly: expected: ByNovelty, actual %v", reflect.TypeOf(e.Comparer))
-	}
-}
-
-func TestByFitnessCompare(t *testing.T) {
-
+func TestByFitness(t *testing.T) {
 	var cases = []struct {
 		Desc     string
 		A, B     Genome
 		Expected int8
 	}{
 		{
-			Desc:     "two empty genomes",
-			A:        Genome{},
-			B:        Genome{},
+			Desc:     "equal fitness",
+			A:        Genome{Fitness: 1.0},
+			B:        Genome{Fitness: 1.0},
 			Expected: 0,
 		},
 		{
-			Desc: "first genome is empty",
-			A:    Genome{},
-			B: Genome{
-				ID: 2, Fitness: 2.2, Novelty: 1.2, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "lower fitness",
+			A:        Genome{Fitness: 0.0},
+			B:        Genome{Fitness: 1.0},
 			Expected: -1,
 		},
 		{
-			Desc: "second genome is empty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B:        Genome{},
+			Desc:     "higher fitness",
+			A:        Genome{Fitness: 2.0},
+			B:        Genome{Fitness: 1.0},
 			Expected: 1,
-		},
-		{
-			Desc: "same genome",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 0,
-		},
-		{
-			Desc: "genome a has solution",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: true,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has solution",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: true,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome a has higher fitness",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 1.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has higher fitness",
-			A: Genome{
-				ID: 1, Fitness: 1.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome a has higher novelty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 0,
-		},
-		{
-			Desc: "genome b has higher novelty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 0,
-		},
-		{
-			Desc: "genome a has higher encoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}, {Neuron: Output}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome b has higher encoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}, {Neuron: Output}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome a has higher decoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}, {Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome b has higher decoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}, {Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome a has lower ID",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 2, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has lower ID",
-			A: Genome{
-				ID: 2, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
 		},
 	}
 
-	cmp := ByFitness{}
-
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			actual := cmp.Compare(c.A, c.B)
-			if c.Expected != actual {
-				t.Errorf("incorrect comparison value: expected %d, actual %d", c.Expected, actual)
+			x := ByFitness(c.A, c.B)
+			if x != c.Expected {
+				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}
 }
 
-func TestByNoveltyCompare(t *testing.T) {
-
+func TestByNovelty(t *testing.T) {
 	var cases = []struct {
 		Desc     string
 		A, B     Genome
 		Expected int8
 	}{
 		{
-			Desc:     "two empty genomes",
-			A:        Genome{},
-			B:        Genome{},
+			Desc:     "equal novelty",
+			A:        Genome{Novelty: 1.0},
+			B:        Genome{Novelty: 1.0},
 			Expected: 0,
 		},
 		{
-			Desc: "first genome is empty",
-			A:    Genome{},
-			B: Genome{
-				ID: 2, Fitness: 2.2, Novelty: 1.2, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "lower novelty",
+			A:        Genome{Novelty: 0.0},
+			B:        Genome{Novelty: 1.0},
 			Expected: -1,
 		},
 		{
-			Desc: "second genome is empty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B:        Genome{},
+			Desc:     "higher novelty",
+			A:        Genome{Novelty: 2.0},
+			B:        Genome{Novelty: 1.0},
 			Expected: 1,
 		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Desc, func(t *testing.T) {
+			x := ByNovelty(c.A, c.B)
+			if x != c.Expected {
+				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+			}
+		})
+	}
+}
+
+func TestByAge(t *testing.T) {
+	var cases = []struct {
+		Desc     string
+		A, B     Genome
+		Expected int8
+	}{
 		{
-			Desc: "same genome",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "equal age", // unlikely unless genome is a duplicate
+			A:        Genome{ID: 2},
+			B:        Genome{ID: 2},
 			Expected: 0,
 		},
 		{
-			Desc: "genome a has solution",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: true,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has solution",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: true,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "lower age",
+			A:        Genome{ID: 1},
+			B:        Genome{ID: 2},
 			Expected: -1,
 		},
 		{
-			Desc: "genome a has higher fitness",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 1.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "higher age",
+			A:        Genome{ID: 3},
+			B:        Genome{ID: 2},
+			Expected: 1,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Desc, func(t *testing.T) {
+			x := ByAge(c.A, c.B)
+			if x != c.Expected {
+				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+			}
+		})
+	}
+}
+
+func TestByComplexity(t *testing.T) {
+	var cases = []struct {
+		Desc     string
+		A, B     Genome
+		Expected int8
+	}{
+		{
+			Desc:     "equal complexity",
+			A:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}}}},
+			B:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}}}},
 			Expected: 0,
 		},
 		{
-			Desc: "genome b has higher fitness",
-			A: Genome{
-				ID: 1, Fitness: 1.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 0,
-		},
-		{
-			Desc: "genome a has higher novelty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "lower complexity",
+			A:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}}}},
+			B:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}, {}}}},
 			Expected: 1,
 		},
 		{
-			Desc: "genome b has higher novelty",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome a has higher encoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}, {Neuron: Output}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has higher encoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}, {Neuron: Output}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome a has higher decoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}, {Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has higher decoded complexity",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 1.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}, {Neuron: Output}}},
-			},
-			Expected: -1,
-		},
-		{
-			Desc: "genome a has lower ID",
-			A: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 2, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			Expected: 1,
-		},
-		{
-			Desc: "genome b has lower ID",
-			A: Genome{
-				ID: 2, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
-			B: Genome{
-				ID: 1, Fitness: 2.1, Novelty: 2.1, Solved: false,
-				Encoded: Substrate{Nodes: []Node{{Neuron: Input}, {Neuron: Hidden}}},
-				Decoded: Substrate{Nodes: []Node{{Neuron: Output}}},
-			},
+			Desc:     "higher complexity",
+			A:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}, {}}}},
+			B:        Genome{Encoded: Substrate{Nodes: []Node{{}, {}}}},
 			Expected: -1,
 		},
 	}
 
-	cmp := ByNovelty{}
+	for _, c := range cases {
+		t.Run(c.Desc, func(t *testing.T) {
+			x := ByComplexity(c.A, c.B)
+			if x != c.Expected {
+				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+			}
+		})
+	}
+}
+
+func TestBySolved(t *testing.T) {
+	var cases = []struct {
+		Desc     string
+		A, B     Genome
+		Expected int8
+	}{
+		{
+			Desc:     "both unsolved",
+			A:        Genome{Solved: false},
+			B:        Genome{Solved: false},
+			Expected: 0,
+		},
+		{
+			Desc:     "both solved",
+			A:        Genome{Solved: true},
+			B:        Genome{Solved: true},
+			Expected: 0,
+		},
+		{
+			Desc:     "a solved",
+			A:        Genome{Solved: true},
+			B:        Genome{Solved: false},
+			Expected: 1,
+		},
+		{
+			Desc:     "b solved",
+			A:        Genome{Solved: false},
+			B:        Genome{Solved: true},
+			Expected: -1,
+		},
+	}
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			actual := cmp.Compare(c.A, c.B)
-			if c.Expected != actual {
-				t.Errorf("incorrect comparison value: expected %d, actual %d", c.Expected, actual)
+			x := BySolved(c.A, c.B)
+			if x != c.Expected {
+				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+			}
+		})
+	}
+}
+
+func TestSortBy(t *testing.T) {
+	var cases = []struct {
+		Desc     string
+		Genomes  []Genome
+		Expected []int64
+	}{
+		{
+			Desc: "equal novelty, equal fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 1.0, Novelty: 1.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{2, 1},
+		},
+		{
+			Desc: "lower novelty, equal fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 1.0, Novelty: 0.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{2, 1},
+		},
+		{
+			Desc: "lower novelty, lower fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 0.0, Novelty: 0.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{2, 1},
+		},
+		{
+			Desc: "lower novelty, higher fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 2.0, Novelty: 0.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{2, 1},
+		},
+		{
+			Desc: "higher novelty, equal fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 1.0, Novelty: 3.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{1, 2},
+		},
+		{
+			Desc: "higher novelty, lower fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 0.0, Novelty: 3.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{1, 2},
+		},
+		{
+			Desc: "higher novelty, higher fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 2.0, Novelty: 3.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{1, 2},
+		},
+		{
+			Desc: "equal novelty, lower fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 0.0, Novelty: 1.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{2, 1},
+		},
+		{
+			Desc: "equal novelty, higher fitness",
+			Genomes: []Genome{
+				Genome{ID: 2, Fitness: 2.0, Novelty: 1.0},
+				Genome{ID: 1, Fitness: 1.0, Novelty: 1.0},
+			},
+			Expected: []int64{1, 2},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Desc, func(t *testing.T) {
+			SortBy(c.Genomes, ByNovelty, ByFitness)
+			for i, gid := range c.Expected {
+				if gid != c.Genomes[i].ID {
+					t.Errorf("incorrect genome in position %d: expected %d, actual %d", i, gid, c.Genomes[i].ID)
+				}
 			}
 		})
 	}

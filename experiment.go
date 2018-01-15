@@ -39,7 +39,6 @@ type Listener func(ctx context.Context, final bool, pop Population) error
 type Experiment struct {
 
 	// Required helpers
-	Comparer
 	Crosser
 	Evaluator
 	Populator
@@ -49,6 +48,9 @@ type Experiment struct {
 	Translator
 	Transcriber
 	Mutators []Mutator
+
+	// External methods
+	Compare
 
 	// Properties
 	SpeciesDecayRate float64 // Increment amount [0,1], per iteration, to decay a species without improvement
@@ -115,7 +117,7 @@ func Run(ctx context.Context, n int, options ...Option) (pop Population, err err
 			final := i == (n - 1)
 
 			// Evaluate the population
-			if solved, err = evaluate(ctx, e.Searcher, e.Evaluator, e.Transcriber, e.Translator, e.Comparer, e.SpeciesDecayRate, &pop); err != nil {
+			if solved, err = evaluate(ctx, e.Searcher, e.Evaluator, e.Transcriber, e.Translator, e.Compare, e.SpeciesDecayRate, &pop); err != nil {
 				return
 			}
 			if err = e.publish(ctx, Evaluated, solved || final, pop); err != nil {
@@ -169,7 +171,7 @@ func (e *Experiment) publish(ctx context.Context, event Event, final bool, pop P
 
 func verify(e *Experiment) (err error) {
 	check := []interface{}{
-		e.Comparer, e.Crosser, e.Evaluator, e.Populator, e.Searcher, e.Selector, e.Speciator,
+		e.Crosser, e.Evaluator, e.Populator, e.Searcher, e.Selector, e.Speciator,
 		e.Translator, e.Transcriber,
 	}
 	for _, h := range check {
@@ -179,6 +181,10 @@ func verify(e *Experiment) (err error) {
 		}
 	}
 	if len(e.Mutators) == 0 {
+		err = ErrMissingRequiredHelper
+		return
+	}
+	if e.Compare == nil {
 		err = ErrMissingRequiredHelper
 		return
 	}
@@ -210,7 +216,7 @@ func setSequence(e *Experiment, genomes []Genome) {
 // versions into phenomes. Those phenomes are sent to the searcher along with the evaluator and
 // the results are used to update the genomes and species of the population. Any solution will be
 // detected while updating the genomes.
-func evaluate(ctx context.Context, srch Searcher, eval Evaluator, trsc Transcriber, tran Translator, cmp Comparer, decay float64, pop *Population) (solved bool, err error) {
+func evaluate(ctx context.Context, srch Searcher, eval Evaluator, trsc Transcriber, tran Translator, cmp Compare, decay float64, pop *Population) (solved bool, err error) {
 
 	// Create the phenomes
 	var phenomes []Phenome
@@ -268,19 +274,29 @@ func updateGenomes(genomes []Genome, results []Result) (solved bool) {
 
 // Update the champion of the species. This will be the "best" genome, according to the Comparer,
 // which belongs to the species.
-func updateSpecies(cmp Comparer, decay float64, species []Species, genomes []Genome) {
-	m := make(map[int64]Genome, len(species))
+func updateSpecies(cmp Compare, decay float64, species []Species, genomes []Genome) {
+
+	// Separate the genomes by species
+	var gs []Genome
+	var ok bool
+	m := make(map[int64][]Genome, len(species))
 	for _, g := range genomes {
-		if champ, ok := m[g.SpeciesID]; ok {
-			if cmp.Compare(champ, g) < 0 {
-				m[g.SpeciesID] = g
-			}
-		} else {
-			m[g.SpeciesID] = g
+		if gs, ok = m[g.SpeciesID]; !ok {
+			gs = make([]Genome, 0, len(genomes))
 		}
+		gs = append(gs, g)
+		m[g.SpeciesID] = gs
 	}
+
+	// Iterate the species
 	for i, s := range species {
-		champ := m[s.ID]
+
+		// Determine the current champion
+		gs = m[s.ID]
+		SortBy(gs, BySolved, cmp, ByComplexity, ByAge) // This produces and order with no ties
+		champ := gs[len(gs)-1]
+
+		// Update the decay and champion properties
 		if s.Champion != champ.ID {
 			// New champion, reset decay
 			s.Decay = 0.0
