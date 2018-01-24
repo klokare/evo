@@ -9,6 +9,73 @@ import (
 	"time"
 )
 
+func TestExperimentBatch(t *testing.T) {
+
+	// Test with errors
+	t.Run("with errors", func(t *testing.T) {
+
+		// Execute without options and will get an error
+		r := 3
+		_, errs := Batch(context.Background(), r, 2)
+
+		// There should be no errors
+		if len(errs) != r {
+			t.Errorf("incorrect number of potential erros returned: expected %d, actual %d", r, len(errs))
+		} else {
+			for i, err := range errs {
+				if err == nil {
+					t.Errorf("error expected for run %d", i)
+				}
+			}
+		}
+	})
+
+	// Test without errors
+	t.Run("without errors", func(t *testing.T) {
+
+		// Design the experiment
+		var options = []Option{
+			WithConfiguration(&MockConfigurer{}),
+			WithCompare(ByFitness),
+			WithMockCrosser(),
+			WithMockEvaluator(),
+			WithMockPopulator(),
+			WithMockSearcher(),
+			WithMockSelector(),
+			WithMockSpeciator(),
+			WithMockTranscriber(),
+			WithMockTranslator(),
+			WithMockMutators(),
+		}
+
+		// Execute the batch
+		r := 3
+		pops, errs := Batch(context.Background(), r, 2, options...)
+
+		// There should be the correct number of populations
+		if len(pops) != r {
+			t.Errorf("incorrect number of populations: expected %d, actual %d", r, len(pops))
+		} else {
+			for i, p := range pops {
+				if p.Generation == 0 {
+					t.Errorf("run %d not executed", i)
+				}
+			}
+		}
+
+		// There should be no errors
+		if len(errs) != r {
+			t.Errorf("incorrect number of potential erros returned: expected %d, actual %d", r, len(errs))
+		} else {
+			for i, err := range errs {
+				if err != nil {
+					t.Errorf("unexpected error for run %d: %v", i, err)
+				}
+			}
+		}
+	})
+}
+
 // Things to test in Run
 // 1. If context does not end early and there are no errors or solution, it should run for n iterations
 // 2. If solution is found, the experiment should end early returning after the whole population's results are processed

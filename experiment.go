@@ -3,7 +3,9 @@ package evo
 import (
 	"context"
 	"errors"
+	"runtime"
 	"sort"
+	"sync"
 	"sync/atomic"
 )
 
@@ -62,11 +64,32 @@ type Experiment struct {
 
 // Batch performs r or more runs of an experiment, each created with n iterations and using the
 // options. Batch retuns each of the resulting populations.
-// func Batch(ctx context.Context, r, n int, options ...Option) (pops []Population, err error) {
-//
-// 	// Batch is complete, return
-// 	return
-// }
+func Batch(ctx context.Context, r, n int, options ...Option) (pops []Population, errs []error) {
+
+	ch := make(chan int)
+	go func(ch chan int) {
+		for i := 0; i < r; i++ {
+			ch <- i
+		}
+		close(ch)
+	}(ch)
+
+	// Execute each run
+	pops = make([]Population, r)
+	errs = make([]error, r)
+	wg := new(sync.WaitGroup)
+	for w := 0; w < runtime.NumCPU(); w++ {
+		wg.Add(1)
+		go func(ch <-chan int) {
+			defer wg.Done()
+			for i := range ch {
+				pops[i], errs[i] = Run(ctx, n, options...)
+			}
+		}(ch)
+	}
+	wg.Wait()
+	return
+}
 
 // Run performs a single execution of an experiment, defined by the options, for n iterations. The
 // final state of the population is returned. Since an experiment may use a different configuration,
@@ -319,6 +342,11 @@ func advance(ctx context.Context, sel Selector, crs Crosser, mutators []Mutator,
 	var parents [][]Genome
 	if continuing, parents, err = sel.Select(ctx, *pop); err != nil {
 		return
+	}
+
+	// Offspring will be created which means a new generation
+	if len(parents) > 0 {
+		pop.Generation++
 	}
 
 	// For each parenting group, create an offspring

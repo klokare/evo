@@ -104,13 +104,13 @@ func TestByAge(t *testing.T) {
 			Desc:     "lower age",
 			A:        Genome{ID: 1},
 			B:        Genome{ID: 2},
-			Expected: -1,
+			Expected: 1,
 		},
 		{
 			Desc:     "higher age",
 			A:        Genome{ID: 3},
 			B:        Genome{ID: 2},
-			Expected: 1,
+			Expected: -1,
 		},
 	}
 

@@ -80,9 +80,9 @@ func ByComplexity(a, b Genome) int8 {
 // ByAge retuns the relative order of two genomes by their age, using ID number as a proxy
 func ByAge(a, b Genome) int8 {
 	switch {
-	case a.ID < b.ID:
-		return -1
 	case a.ID > b.ID:
+		return -1
+	case a.ID < b.ID:
 		return 1
 	default:
 		return 0
