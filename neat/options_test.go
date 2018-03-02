@@ -60,8 +60,8 @@ func TestWithOptions(t *testing.T) {
 		if e.Crosser == nil {
 			t.Errorf("crosser should be set")
 		}
-		if e.Populator == nil {
-			t.Errorf("populator should be set")
+		if e.Seeder == nil {
+			t.Errorf("seeder should be set")
 		}
 		if e.Searcher == nil {
 			t.Errorf("searcher should be set")

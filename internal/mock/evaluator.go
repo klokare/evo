@@ -1,19 +1,20 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Evaluator ...
 type Evaluator struct {
 	Called   int
 	HasError bool
 	HasSolve bool
 }
 
-func (e *Evaluator) Evaluate(ctx context.Context, p evo.Phenome) (r evo.Result, err error) {
+// Evaluate ...
+func (e *Evaluator) Evaluate(p evo.Phenome) (r evo.Result, err error) {
 	e.Called++
 	if e.HasError {
 		err = errors.New("mock evaluator error")
@@ -28,6 +29,7 @@ func (e *Evaluator) Evaluate(ctx context.Context, p evo.Phenome) (r evo.Result, 
 	return
 }
 
+// WithEvaluator ...
 func WithEvaluator() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Evaluator = &Evaluator{}

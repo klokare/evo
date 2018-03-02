@@ -1,12 +1,12 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Speciator ...
 type Speciator struct {
 	Called    int
 	HasError  bool
@@ -14,7 +14,8 @@ type Speciator struct {
 	SetChamp  bool // Sets the champion after intial speciation so we can test the decay call
 }
 
-func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err error) {
+// Speciate ...
+func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 	s.Called++
 	if s.HasError {
 		err = errors.New("mock speciator error")
@@ -51,6 +52,7 @@ func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err erro
 	return
 }
 
+// WithSpeciator ...
 func WithSpeciator() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Speciator = &Speciator{}

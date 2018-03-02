@@ -1,26 +1,32 @@
 package neat
 
 import (
-	"context"
 	"errors"
 	"math"
 
 	"github.com/klokare/evo"
 )
 
+// Known errors
+var (
+	ErrInvalidPopulationSize = errors.New("invalid population size")
+)
+
 // Selector determines which genomes continue and which become parents
 type Selector struct {
+	PopulationSize              int
 	MutateOnlyProbability       float64
 	InterspeciesMateProbability float64
 	Compare                     evo.Compare
 
 	// Internal state
-	prevBest     int64 // The ID of the best genome from previous generations
-	lastImproved int   // Number of iterations since the last improvement
+	prevBest     int64   // The ID of the best genome from previous generations
+	lastImproved int     // Number of iterations since the last improvement
+	mop          float64 // stored mutate only probability for restoring when toggled
 }
 
 // Select the genomes to continue and those to become parents
-func (s *Selector) Select(ctx context.Context, pop evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
+func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
 
 	// Sort and rank the genomes
 	ranks := sortRank(s.Compare, pop.Genomes)
@@ -38,7 +44,7 @@ func (s *Selector) Select(ctx context.Context, pop evo.Population) (continuing [
 	}
 	if stagnant {
 		continuing = []evo.Genome{best}
-		parents = make([][]evo.Genome, len(pop.Genomes)-1)
+		parents = make([][]evo.Genome, s.PopulationSize-len(continuing))
 		for i := 0; i < len(parents); i++ {
 			parents[i] = []evo.Genome{best}
 		}
@@ -98,12 +104,13 @@ func (s *Selector) Select(ctx context.Context, pop evo.Population) (continuing [
 		}
 		if !found {
 			continuing = append(continuing, best)
+			//	parents = append(parents, []evo.Genome{best}) // Give the species 1 more chance
 		}
 	}
 
 	// Calculate offspring
 	cnt := 0
-	tgt := len(pop.Genomes) - len(continuing)
+	tgt := s.PopulationSize - len(continuing) - len(parents)
 	off := make(map[int64]int, len(avg))
 	for sid, x := range avg {
 		if x > 0.0 {
@@ -153,6 +160,19 @@ func (s *Selector) Select(ctx context.Context, pop evo.Population) (continuing [
 	return
 }
 
+// ToggleMutateOnly puts the selector into a mutate only mode when on is true
+func (s *Selector) ToggleMutateOnly(on bool) error {
+	if s.mop == 0.0 {
+		s.mop = s.MutateOnlyProbability
+	}
+	if on {
+		s.MutateOnlyProbability = 1.0
+	} else {
+		s.MutateOnlyProbability = s.mop
+	}
+	return nil
+}
+
 // Sort and rank the genomes. The sort is a reverse sort (best in first position) and deterministic
 // (always producing the same order). The rank is relative order, allowing for ties, where best is
 // float64(len(genomes)) and worst, assuming no tie, is 1.
@@ -180,12 +200,22 @@ func sortRank(fn evo.Compare, genomes []evo.Genome) (ranks map[int64]float64) {
 	return
 }
 
+// Adjust counts by assigning the difference to the most fit species which is identified by the
+// species with the most offspring assigned and the lowest ID.
 func adjCounts(off map[int64]int, cnt, tgt int) {
+
+	// Calaculate the adjustment
+	diff := tgt - cnt
+	if diff < 0 {
+		diff = -diff
+	}
 	adj := 1
 	if cnt > tgt {
 		adj = -1
 	}
-	for cnt != tgt {
+
+	// Make multiple passes
+	for i := 0; i < 2*diff && cnt != tgt; i++ {
 		for sid := range off {
 			n := off[sid]
 			if n+adj <= 0 {

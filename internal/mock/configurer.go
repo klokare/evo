@@ -8,6 +8,7 @@ import (
 	"github.com/klokare/evo"
 )
 
+// Configurer ...
 type Configurer struct {
 
 	// Common mock properties
@@ -26,7 +27,6 @@ type Configurer struct {
 	ConnsCoefficient      float64
 
 	// neat.Populator
-	PopulationSize   int
 	NumInputs        int
 	NumOutputs       int
 	NumTraits        int
@@ -38,6 +38,7 @@ type Configurer struct {
 	MaxWeight        float64
 
 	// neat.Selector
+	PopulationSize              int
 	MaxStagnation               int
 	MutateOnlyProbability       float64
 	InterspeciesMateProbability float64
@@ -73,8 +74,14 @@ type Configurer struct {
 	// neat.muator.Traits
 	// TODO: add after trait mutator implemented
 
+	// hyperneat.Seeder
+	SeedLocalityLayer bool
+	SeedLocalityX     bool
+	SeedLocalityY     bool
+	SeedLocalityZ     bool
 }
 
+// Configure ...
 func (c *Configurer) Configure(items ...interface{}) (err error) {
 
 	// Common mock operations

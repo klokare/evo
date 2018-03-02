@@ -1,7 +1,6 @@
 package mutator
 
 import (
-	"context"
 	"testing"
 
 	"github.com/klokare/evo"
@@ -185,7 +184,7 @@ func TestComplexify(t *testing.T) {
 			}
 
 			// Mutate the genome
-			err := mut.Mutate(context.Background(), &test.Original)
+			err := mut.Mutate(&test.Original)
 			t.Logf("After: %+v\n", test.Original)
 
 			// There should be no error
@@ -251,11 +250,12 @@ func testComplexifyConns(actual, expected []evo.Conn, checkWeight bool) func(*te
 
 		// There should be the same number of connections
 		if len(actual) != len(expected) {
+			t.Logf("actual %+v\n", actual)
 			t.Errorf("incorrect number of connections. expected %d, actual %d", len(expected), len(actual))
 			t.FailNow()
 		}
 
-		// Nodes should match
+		// Conns should match
 		for _, ec := range expected {
 			found := false
 			for _, ac := range actual {
@@ -271,6 +271,8 @@ func testComplexifyConns(actual, expected []evo.Conn, checkWeight bool) func(*te
 						t.Errorf("incorrect weight. expected %f, actual %f", ec.Weight, ac.Weight)
 					}
 					if ac.Enabled != ec.Enabled {
+						t.Log("actual", actual)
+						t.Log("expected", expected)
 						t.Errorf("incorrect enabled. expected %v, actual %v", ec.Enabled, ac.Enabled)
 					}
 

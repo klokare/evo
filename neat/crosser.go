@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"errors"
 	"sort"
 
@@ -22,7 +21,7 @@ type Crosser struct {
 
 // Cross the parents and create a new offspring, using the sequence to assign a new ID. There is a
 // chance that connections disabled in one of the parents will also be disabled in the child.
-func (z *Crosser) Cross(ctx context.Context, parents ...evo.Genome) (child evo.Genome, err error) {
+func (z *Crosser) Cross(parents ...evo.Genome) (child evo.Genome, err error) {
 
 	// Check for errors
 	if len(parents) == 0 {

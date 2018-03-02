@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"math"
 	"testing"
 
@@ -22,7 +21,7 @@ func TestCrosserParentErrors(t *testing.T) {
 	z := new(Crosser)
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			_, err := z.Cross(context.Background(), c.Parents...)
+			_, err := z.Cross(c.Parents...)
 			t.Run("error", test.Error(true, err))
 		})
 	}
@@ -240,7 +239,7 @@ func TestCrosser(t *testing.T) {
 			// Cross the parents
 			cmp := evo.ByFitness
 			crs := &Crosser{EnableProbability: 0.0, Compare: cmp}
-			child, err := crs.Cross(context.Background(), c.Parents...)
+			child, err := crs.Cross(c.Parents...)
 
 			// Check if error was expected
 			if t.Run("Error", test.Error(false, err)) == false {
@@ -370,7 +369,7 @@ func TestCrosserEnable(t *testing.T) {
 		tries := 10000
 		cnt := 0
 		for i := 0; i < tries; i++ {
-			child, _ := crs.Cross(context.Background(), p1)
+			child, _ := crs.Cross(p1)
 			if child.Encoded.Conns[0].Enabled {
 				cnt++
 			}
@@ -402,7 +401,6 @@ func TestCrosserRandomness(t *testing.T) {
 	}
 
 	// Create a crosser
-	ctx := context.Background()
 	crs := &Crosser{Compare: evo.ByFitness}
 
 	// Run the tests
@@ -410,7 +408,7 @@ func TestCrosserRandomness(t *testing.T) {
 		var cnt1, cnt2 float64
 		n := 10000
 		for i := 0; i < n; i++ {
-			child, _ := crs.Cross(ctx, p1, p2)
+			child, _ := crs.Cross(p1, p2)
 			if child.Traits[0] == 1.0 {
 				cnt1 += 1.0
 			} else if child.Traits[0] == 2.0 {
@@ -431,7 +429,7 @@ func TestCrosserRandomness(t *testing.T) {
 		var cnt1, cnt2 float64
 		n := 10000
 		for i := 0; i < n; i++ {
-			child, _ := crs.Cross(ctx, p1, p2)
+			child, _ := crs.Cross(p1, p2)
 			if child.Encoded.Nodes[0].Bias == 1.0 {
 				cnt1 += 1.0
 			} else if child.Encoded.Nodes[0].Bias == 2.0 {
@@ -451,7 +449,7 @@ func TestCrosserRandomness(t *testing.T) {
 		var cnt1, cnt2 float64
 		n := 10000
 		for i := 0; i < n; i++ {
-			child, _ := crs.Cross(ctx, p1, p2)
+			child, _ := crs.Cross(p1, p2)
 			if child.Encoded.Conns[0].Weight == 1.0 {
 				cnt1 += 1.0
 			} else if child.Encoded.Conns[0].Weight == 2.0 {
@@ -876,7 +874,7 @@ func TestCrosserDisjointed(t *testing.T) {
 			// Cross the parents
 			cmp := evo.ByFitness
 			crs := &Crosser{EnableProbability: 0.0, Compare: cmp}
-			child, err := crs.Cross(context.Background(), c.Parents...)
+			child, err := crs.Cross(c.Parents...)
 
 			// Check if error was expected
 			if t.Run("Error", test.Error(false, err)) == false {

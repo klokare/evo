@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"errors"
 	"math"
 	"testing"
@@ -186,7 +185,7 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			}
 
 			// Speciate the population
-			err := s.Speciate(context.Background(), &c.Actual)
+			err := s.Speciate(&c.Actual)
 
 			// Test for errors
 			if !t.Run("error", test.Error(c.HasError, err)) || c.HasError {
@@ -249,19 +248,8 @@ func testSpeciatorGenomes(actual, expected []evo.Genome) func(*testing.T) {
 	}
 }
 
+// TODO: add to test a case where there are no new additions to species. this happens when advancing only contains continuing
 func TestSpeciatorModify(t *testing.T) {
-
-	// common population for test
-	pop := evo.Population{
-		Genomes: []evo.Genome{
-			{ID: 1, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-			{ID: 2, SpeciesID: 20, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
-		},
-		Species: []evo.Species{
-			{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-			{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
-		},
-	}
 
 	// test cases
 	var cases = []struct {
@@ -270,6 +258,7 @@ func TestSpeciatorModify(t *testing.T) {
 		Original float64
 		Expected float64
 		Target   int
+		evo.Population
 	}{
 		{
 			Desc:     "at target",
@@ -277,27 +266,67 @@ func TestSpeciatorModify(t *testing.T) {
 			Modifier: 0.5,
 			Original: 1.0,
 			Expected: 1.0,
+			Population: evo.Population{
+				Genomes: []evo.Genome{
+					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
+				},
+				Species: []evo.Species{
+					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+				},
+			},
 		},
 		{
 			Desc:     "below target",
 			Target:   3,
 			Modifier: 0.5,
-			Original: 1.0,
-			Expected: 1.5, // Should increase
+			Original: 1.5,
+			Expected: 1.0, // Should decrease
+			Population: evo.Population{
+				Genomes: []evo.Genome{
+					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
+				},
+				Species: []evo.Species{
+					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+				},
+			},
 		},
 		{
 			Desc:     "above target",
 			Target:   1,
 			Modifier: 0.5,
-			Original: 1.5,
-			Expected: 1.0, // Should decrease
+			Original: 1.0,
+			Expected: 1.5, // Should increase
+			Population: evo.Population{
+				Genomes: []evo.Genome{
+					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
+				},
+				Species: []evo.Species{
+					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+				},
+			},
 		},
 		{
-			Desc:     "above target, near modifier",
-			Target:   1,
+			Desc:     "below target, near modifier",
+			Target:   3,
 			Modifier: 0.5,
 			Original: 0.8,
 			Expected: 0.5, // Should not go below the modifier value as a minimum
+			Population: evo.Population{
+				Genomes: []evo.Genome{
+					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
+				},
+				Species: []evo.Species{
+					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+				},
+			},
 		},
 	}
 
@@ -314,7 +343,7 @@ func TestSpeciatorModify(t *testing.T) {
 			}
 
 			// Speciate
-			_ = s.Speciate(context.Background(), &pop)
+			_ = s.Speciate(&c.Population)
 
 			// Check threshold
 			if c.Expected != s.CompatibilityThreshold {

@@ -1,8 +1,6 @@
 package mutator
 
 import (
-	"context"
-
 	"github.com/klokare/evo"
 )
 
@@ -17,7 +15,7 @@ type Bias struct {
 // Mutate the the bias values of the genomes based on the settings in the helper. In Stanley's
 // version of NEAT, bias is a separate node type with connections to other nodes. In evo, bias is a
 // property of the node. Effectively, though, they are the same.
-func (b Bias) Mutate(ctx context.Context, g *evo.Genome) (err error) {
+func (b Bias) Mutate(g *evo.Genome) (err error) {
 	rng := evo.NewRandom()
 	for i, n := range g.Encoded.Nodes {
 		if n.Neuron == evo.Input {

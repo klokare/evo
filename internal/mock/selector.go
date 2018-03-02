@@ -1,19 +1,22 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Selector ...
 type Selector struct {
 	Called                 int
 	HasError               bool
 	FailWithTooManyParents bool // Special case to check for incorrect population size
+	MutateOnlyProbability  float64
+	mop                    float64
 }
 
-func (s *Selector) Select(ctx context.Context, p evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
+// Select ...
+func (s *Selector) Select(p evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
 	s.Called++
 	if s.HasError {
 		err = errors.New("mock selector error")
@@ -30,6 +33,20 @@ func (s *Selector) Select(ctx context.Context, p evo.Population) (continuing []e
 	return
 }
 
+// ToggleMutateOnly ...
+func (s *Selector) ToggleMutateOnly(on bool) error {
+	if s.mop == 0.0 {
+		s.mop = s.MutateOnlyProbability
+	}
+	if on {
+		s.MutateOnlyProbability = 1.0
+	} else {
+		s.MutateOnlyProbability = s.mop
+	}
+	return nil
+}
+
+// WithSelector ...
 func WithSelector() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Selector = &Selector{}

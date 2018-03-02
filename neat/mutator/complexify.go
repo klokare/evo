@@ -1,7 +1,7 @@
 package mutator
 
 import (
-	"context"
+	"sort"
 
 	"github.com/klokare/evo"
 )
@@ -15,7 +15,7 @@ type Complexify struct {
 }
 
 // Mutate a genome by adding nodes or connections
-func (m Complexify) Mutate(ctx context.Context, g *evo.Genome) (err error) {
+func (m Complexify) Mutate(g *evo.Genome) (err error) {
 	rng := evo.NewRandom()
 	if rng.Float64() < m.AddNodeProbability {
 		return m.addNode(rng, m.HiddenActivation, &g.Encoded)
@@ -37,6 +37,10 @@ func (m Complexify) Mutate(ctx context.Context, g *evo.Genome) (err error) {
 // the equivalent.
 func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substrate) (err error) {
 
+	// Improve search speed
+	sort.Slice(sub.Nodes, func(i, j int) bool { return sub.Nodes[i].Compare(sub.Nodes[j]) < 0 })
+	sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+
 	// Iterate connections randomly
 	idxs := rng.Perm(len(sub.Conns))
 	for _, idx := range idxs {
@@ -44,56 +48,24 @@ func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substra
 		// Identify the connection
 		c0 := &sub.Conns[idx]
 
-		// Identify the new node's position on the substrate
-		p := evo.Position{
-			Layer: (c0.Source.Layer + c0.Target.Layer) / 2.0,
-			X:     (c0.Source.X + c0.Target.X) / 2.0,
-			Y:     (c0.Source.Y + c0.Target.Y) / 2.0,
-			Z:     (c0.Source.Z + c0.Target.Z) / 2.0,
+		// Create the new node
+		n := evo.Node{
+			Position:   evo.Midpoint(c0.Source, c0.Target),
+			Neuron:     evo.Hidden,
+			Activation: act,
+			Bias:       0.0,
 		}
 
 		// Look for an existing node
-		var n evo.Node
-		fn := false
-		for _, n := range sub.Nodes {
-			if n.Position == p {
-				fn = true
-				break
-			}
+		i := sort.Search(len(sub.Nodes), func(i int) bool { return sub.Nodes[i].Compare(n) >= 0 })
+		if idx < len(sub.Nodes) && sub.Nodes[i].Compare(n) == 0 {
+			continue
 		}
-		if !fn {
-			// Create the new node
-			n = evo.Node{
-				Position:   p,
-				Neuron:     evo.Hidden,
-				Activation: act,
-				Bias:       0.0,
-			}
-		}
+		sub.Nodes = append(sub.Nodes, n)
 
 		// Identify the connections to this node based on the original connection
 		c1 := evo.Conn{Source: c0.Source, Target: n.Position, Weight: 1.0, Enabled: true}
 		c2 := evo.Conn{Source: n.Position, Target: c0.Target, Weight: c0.Weight, Enabled: true}
-
-		// Skip the original connetion if either of these new connections exist
-		fc := false
-		for _, c := range sub.Conns {
-			if c.Source == c0.Source && c.Target == n.Position {
-				fc = true
-				break
-			} else if c.Source == n.Position && c.Target == c0.Target {
-				fc = true
-				break
-			}
-		}
-		if fc {
-			continue
-		}
-
-		// Add the node and connections
-		if !fn {
-			sub.Nodes = append(sub.Nodes, n)
-		}
 		sub.Conns = append(sub.Conns, c1, c2)
 
 		// Disable the original connection
@@ -108,6 +80,10 @@ func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substra
 // In the add connection mutation, a single new connection gene with a random weight is added
 // connecting two previously unconnected nodes (Stanley, 107).
 func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err error) {
+
+	// Improve search speed
+	sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+
 	// Randomise node order
 	sidxs := rng.Perm(len(sub.Nodes))
 	tidxs := rng.Perm(len(sub.Nodes))
@@ -117,18 +93,6 @@ func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err
 		src := sub.Nodes[sidx]
 		for _, tidx := range tidxs {
 			tgt := sub.Nodes[tidx]
-
-			// Nodes must be previously unconnected
-			found := false
-			for _, c := range sub.Conns {
-				if c.Source == src.Position && c.Target == tgt.Position {
-					found = true
-					break
-				}
-			}
-			if found {
-				continue
-			}
 
 			// Simple tests for recurrence
 			// NOTE: recurrence not implemented in this version
@@ -149,6 +113,14 @@ func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err
 				Weight:  rng.NormFloat64() * wp,
 				Enabled: true,
 			}
+
+			// Nodes must be previously unconnected
+			idx := sort.Search(len(sub.Conns), func(i int) bool { return sub.Conns[i].Compare(c) >= 0 })
+			if idx < len(sub.Conns) && sub.Conns[idx].Compare(c) == 0 {
+				continue
+			}
+
+			// Append the connection
 			sub.Conns = append(sub.Conns, c)
 			return
 		}

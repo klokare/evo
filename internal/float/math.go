@@ -63,3 +63,15 @@ func Stdev(values ...float64) float64 {
 	v := Variance(values...)
 	return math.Sqrt(v / float64(len(values)))
 }
+
+func Abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func Round(f float64, s int) float64 {
+	shift := math.Pow(10, float64(s))
+	return math.Floor(f*shift+.5) / shift
+}

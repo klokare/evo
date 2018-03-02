@@ -1,18 +1,19 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Transcriber ...
 type Transcriber struct {
 	Called   int
 	HasError bool
 }
 
-func (t *Transcriber) Transcribe(ctx context.Context, enc evo.Substrate) (dec evo.Substrate, err error) {
+// Transcribe ...
+func (t *Transcriber) Transcribe(enc evo.Substrate) (dec evo.Substrate, err error) {
 	t.Called++
 	if t.HasError {
 		err = errors.New("mock transcriber error")
@@ -22,6 +23,7 @@ func (t *Transcriber) Transcribe(ctx context.Context, enc evo.Substrate) (dec ev
 	return
 }
 
+// WithTranscriber ...
 func WithTranscriber() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Transcriber = &Transcriber{}

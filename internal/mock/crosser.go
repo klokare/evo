@@ -1,18 +1,19 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Crosser ...
 type Crosser struct {
 	Called   int
 	HasError bool
 }
 
-func (c *Crosser) Cross(ctx context.Context, parents ...evo.Genome) (child evo.Genome, err error) {
+// Cross ...
+func (c *Crosser) Cross(parents ...evo.Genome) (child evo.Genome, err error) {
 	c.Called++
 	if c.HasError {
 		err = errors.New("mock crosser error")
@@ -21,6 +22,7 @@ func (c *Crosser) Cross(ctx context.Context, parents ...evo.Genome) (child evo.G
 	return
 }
 
+// WithCrosser ...
 func WithCrosser() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Crosser = &Crosser{}

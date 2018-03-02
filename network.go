@@ -4,7 +4,7 @@ import "math"
 
 // A Network provides the ability to process a set of inputs and returns the outputs
 type Network interface {
-	Activate([]float64) ([]float64, error)
+	Activate(Matrix) (Matrix, error)
 }
 
 // Neuron is the type of neuron to create within the network

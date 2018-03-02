@@ -1,18 +1,19 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Translator ...
 type Translator struct {
 	Called   int
 	HasError bool
 }
 
-func (t *Translator) Translate(context.Context, evo.Substrate) (net evo.Network, err error) {
+// Translate ...
+func (t *Translator) Translate(evo.Substrate) (net evo.Network, err error) {
 	t.Called++
 	if t.HasError {
 		err = errors.New("mock translator error")
@@ -21,6 +22,7 @@ func (t *Translator) Translate(context.Context, evo.Substrate) (net evo.Network,
 	return &Network{}, nil
 }
 
+// WithTranslator ...
 func WithTranslator() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Translator = &Translator{}

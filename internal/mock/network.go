@@ -1,7 +1,11 @@
 package mock
 
+import "github.com/klokare/evo"
+
+// Network ...
 type Network struct{}
 
-func (n *Network) Activate(inputs []float64) (outputs []float64, err error) {
-	return
+// Activate ...
+func (n *Network) Activate(evo.Matrix) (evo.Matrix, error) {
+	return nil, nil
 }

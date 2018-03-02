@@ -3,7 +3,7 @@ package neat
 import (
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/neat/mutator"
-	"github.com/klokare/evo/network/foward"
+	"github.com/klokare/evo/network/forward"
 	"github.com/klokare/evo/searcher/serial"
 )
 
@@ -16,11 +16,14 @@ func WithOptions(cfg evo.Configurer) []evo.Option {
 		serial.WithSearcher(),
 		forward.WithTranslator(),
 		WithCrosser(cfg),
-		WithPopulator(cfg),
+		WithSeeder(cfg),
 		WithSelector(cfg),
 		WithSpeciator(cfg),
 		WithTranscriber(cfg),
 		mutator.WithComplexify(cfg),
+		// mutator.WithSimplify(cfg),
+		// mutator.WithPhased(cfg),
+		mutator.WithPruning(cfg),
 		mutator.WithBias(cfg),
 		mutator.WithWeight(cfg),
 	}

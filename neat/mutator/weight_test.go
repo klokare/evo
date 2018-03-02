@@ -1,7 +1,6 @@
 package mutator
 
 import (
-	"context"
 	"math"
 	"testing"
 
@@ -106,7 +105,7 @@ func TestWeight(t *testing.T) {
 				}
 
 				// Mutate
-				err := mut.Mutate(context.Background(), &g)
+				err := mut.Mutate(&g)
 				if err != nil {
 					t.Errorf("there should be no error. instead, %v", err)
 					t.FailNow()

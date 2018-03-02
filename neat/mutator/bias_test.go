@@ -1,7 +1,6 @@
 package mutator
 
 import (
-	"context"
 	"math"
 	"testing"
 
@@ -100,20 +99,26 @@ func TestBias(t *testing.T) {
 				g := evo.Genome{
 					Encoded: evo.Substrate{
 						Nodes: []evo.Node{
-							{Bias: 1.0},
+							{Bias: 0.0, Neuron: evo.Input},
+							{Bias: 1.0, Neuron: evo.Output},
 						},
 					},
 				}
 
 				// Mutate
-				err := mut.Mutate(context.Background(), &g)
+				err := mut.Mutate(&g)
 				if err != nil {
 					t.Errorf("there should be no error. instead, %v", err)
 					t.FailNow()
 				}
 
-				// Record the new weight
-				biases[i] = g.Encoded.Nodes[0].Bias
+				// Inputs should not be affected
+				if g.Encoded.Nodes[0].Bias != 0.0 {
+					t.Errorf("input node should not be affected")
+				}
+
+				// Record the new bias
+				biases[i] = g.Encoded.Nodes[1].Bias
 
 			}
 

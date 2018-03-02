@@ -81,3 +81,54 @@ func TestPositionCompare(t *testing.T) {
 		})
 	}
 }
+
+func TestMidpoint(t *testing.T) {
+	var cases = []struct {
+		Desc      string
+		Positions []Position
+		Expected  Position
+	}{
+		{
+			Desc: "one position",
+			Positions: []Position{
+				{Layer: 1.0, X: 1.0, Y: 1.0, Z: 1.0},
+			},
+			Expected: Position{Layer: 1.0, X: 1.0, Y: 1.0, Z: 1.0},
+		},
+		{
+			Desc: "two positions",
+			Positions: []Position{
+				{Layer: 1.0, X: 3.0, Y: 0.0, Z: 2.0},
+				{Layer: 3.0, X: 1.0, Y: 4.0, Z: 2.0},
+			},
+			Expected: Position{Layer: 2.0, X: 2.0, Y: 2.0, Z: 2.0},
+		},
+		{
+			Desc: "three positions",
+			Positions: []Position{
+				{Layer: 1.0, X: 1.0, Y: 8.0, Z: 3.0},
+				{Layer: 3.0, X: 8.0, Y: 3.0, Z: 1.0},
+				{Layer: 8.0, X: 3.0, Y: 1.0, Z: 8.0},
+			},
+			Expected: Position{Layer: 4.0, X: 4.0, Y: 4.0, Z: 4.0},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Desc, func(t *testing.T) {
+			actual := Midpoint(c.Positions...)
+			if c.Expected.Layer != actual.Layer {
+				t.Errorf("incorrect layer: expected %f, actual %f", c.Expected.Layer, actual.Layer)
+			}
+			if c.Expected.X != actual.X {
+				t.Errorf("incorrect x: expected %f, actual %f", c.Expected.X, actual.X)
+			}
+			if c.Expected.Y != actual.Y {
+				t.Errorf("incorrect y: expected %f, actual %f", c.Expected.Y, actual.Y)
+			}
+			if c.Expected.Z != actual.Z {
+				t.Errorf("incorrect z: expected %f, actual %f", c.Expected.Z, actual.Z)
+			}
+		})
+	}
+}

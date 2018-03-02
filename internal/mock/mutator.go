@@ -1,19 +1,20 @@
 package mock
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
 )
 
+// Mutator ...
 type Mutator struct {
 	HasError        bool
 	MutateStructure bool
 	Count           int
 }
 
-func (m *Mutator) Mutate(ctx context.Context, g *evo.Genome) error {
+// Mutate ...
+func (m *Mutator) Mutate(g *evo.Genome) error {
 	m.Count++
 	if m.HasError {
 		return errors.New("mock mutator error")
@@ -24,12 +25,14 @@ func (m *Mutator) Mutate(ctx context.Context, g *evo.Genome) error {
 	return nil
 }
 
+// StructureMutator ...
 type StructureMutator struct {
 	Called   int
 	HasError bool
 }
 
-func (m *StructureMutator) Mutate(ctx context.Context, g *evo.Genome) (err error) {
+// Mutate ...
+func (m *StructureMutator) Mutate(g *evo.Genome) (err error) {
 	m.Called++
 	if m.HasError {
 		err = errors.New("mock structure mutator error")
@@ -47,12 +50,14 @@ func (m *StructureMutator) Mutate(ctx context.Context, g *evo.Genome) (err error
 	return
 }
 
+// WeightMutator ...
 type WeightMutator struct {
 	Called   int
 	HasError bool
 }
 
-func (m *WeightMutator) Mutate(ctx context.Context, g *evo.Genome) (err error) {
+// Mutate ...
+func (m *WeightMutator) Mutate(g *evo.Genome) (err error) {
 	m.Called++
 	if m.HasError {
 		err = errors.New("mock weight mutator error")
@@ -64,6 +69,7 @@ func (m *WeightMutator) Mutate(ctx context.Context, g *evo.Genome) (err error) {
 	return
 }
 
+// WithMutators ...
 func WithMutators() evo.Option {
 	return func(e *evo.Experiment) error {
 		e.Mutators = append(e.Mutators, &StructureMutator{}, &WeightMutator{})

@@ -1,8 +1,6 @@
 package mutator
 
 import (
-	"context"
-
 	"github.com/klokare/evo"
 )
 
@@ -15,7 +13,7 @@ type Weight struct {
 }
 
 // Mutate a genome by perturbing or replacing its connections' weights
-func (z *Weight) Mutate(ctx context.Context, g *evo.Genome) (err error) {
+func (z *Weight) Mutate(g *evo.Genome) (err error) {
 	rng := evo.NewRandom()
 	for i, c := range g.Encoded.Conns {
 		if rng.Float64() < z.MutateWeightProbability {

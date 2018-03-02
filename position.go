@@ -43,3 +43,26 @@ func (p Position) Compare(other Position) int8 {
 		}
 	}
 }
+
+// Midpoint returns the midpoint (between to positions) or centre (between three or more positions).
+// This function is necessary because of how Go treats floating point [constants](https://www.ardanlabs.com/blog/2014/04/introduction-to-numeric-constants-in-go.html) and how that can lead to [differeing values](https://github.com/golang/go/issues/23876) for similar calculations.
+func Midpoint(positions ...Position) (m Position) {
+	if len(positions) == 1 {
+		return positions[0]
+	}
+	var l, x, y, z float64
+	for _, p := range positions {
+		l += p.Layer
+		x += p.X
+		y += p.Y
+		z += p.Z
+	}
+	n := float64(len(positions))
+	m = Position{
+		Layer: l / n,
+		X:     x / n,
+		Y:     y / n,
+		Z:     y / n,
+	}
+	return
+}

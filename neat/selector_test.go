@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"testing"
 
 	"github.com/klokare/evo"
@@ -142,11 +141,12 @@ func TestSelectorSelect(t *testing.T) {
 
 			// Create the selector
 			s := &Selector{
-				Compare: evo.ByFitness,
+				Compare:        evo.ByFitness,
+				PopulationSize: len(c.Population.Genomes),
 			}
 
 			// Select
-			acs, aps, err := s.Select(context.Background(), c.Population)
+			acs, aps, err := s.Select(c.Population)
 
 			// Check error
 			if !t.Run("error", test.Error(c.HasError, err)) || c.HasError {
@@ -296,11 +296,12 @@ func TestSelectorMutateOnly(t *testing.T) {
 	// Create the selector
 	s := &Selector{
 		Compare:               evo.ByFitness,
+		PopulationSize:        len(pop.Genomes),
 		MutateOnlyProbability: 1.0,
 	}
 
 	// Select
-	_, aps, err := s.Select(context.Background(), pop)
+	_, aps, err := s.Select(pop)
 
 	// Check error
 	if !t.Run("error", test.Error(false, err)) {
@@ -340,11 +341,12 @@ func TestSelectorInterspecies(t *testing.T) {
 	// Create the selector
 	s := &Selector{
 		Compare:                     evo.ByFitness,
+		PopulationSize:              len(pop.Genomes),
 		InterspeciesMateProbability: 1.0,
 	}
 
 	// Select
-	_, aps, err := s.Select(context.Background(), pop)
+	_, aps, err := s.Select(pop)
 
 	// Check error
 	if !t.Run("error", test.Error(false, err)) {
@@ -424,9 +426,10 @@ func TestSelectorStagnant(t *testing.T) {
 
 	// Select
 	s := &Selector{
-		Compare: evo.ByFitness,
+		Compare:        evo.ByFitness,
+		PopulationSize: len(p.Genomes),
 	}
-	cs, ps, err := s.Select(context.Background(), p)
+	cs, ps, err := s.Select(p)
 
 	// Test for error
 	t.Run("error", test.Error(false, err))
@@ -461,5 +464,26 @@ func TestSelectorStagnant(t *testing.T) {
 		if z.Champion != 0 {
 			t.Errorf("incorrect champion for species %d: expected 0.0, actual %d", z.ID, z.Champion)
 		}
+	}
+}
+
+func TestToggleMutateOnly(t *testing.T) {
+
+	// Create a new selector with a non-zero (so we can check) mutate only probability
+	s := &Selector{MutateOnlyProbability: 0.5}
+
+	// Selector begins toggled "off" so toggle "on"
+	s.ToggleMutateOnly(true)
+	if s.mop == 0 {
+		t.Errorf("incorrect mop value: expected %f, actual %f", 0.5, s.mop)
+	}
+	if s.MutateOnlyProbability != 1.0 {
+		t.Errorf("incorrect mutate only value when toggled on: expected 1.0, actual %f", s.MutateOnlyProbability)
+	}
+
+	// Toggle back off
+	s.ToggleMutateOnly(false)
+	if s.MutateOnlyProbability != 0.5 {
+		t.Errorf("incorrect mutate only value when toggled off: expected %f, actual %f", 0.5, s.MutateOnlyProbability)
 	}
 }

@@ -1,11 +1,11 @@
 package serial
 
 import (
-	"context"
-	"errors"
 	"testing"
 
 	"github.com/klokare/evo"
+	"github.com/klokare/evo/internal/mock"
+	"github.com/klokare/evo/internal/test"
 )
 
 func TestSearcherSearch(t *testing.T) {
@@ -15,18 +15,18 @@ func TestSearcherSearch(t *testing.T) {
 
 	// Has error if evaluator has error
 	t.Run("evaluator error", func(t *testing.T) {
-		e := &MockEvaluator{HasError: true}
-		_, err := new(Searcher).Search(context.Background(), e, ps)
-		if !t.Run("error", testError(e.HasError, err)) || e.HasError {
+		e := &mock.Evaluator{HasError: true}
+		_, err := new(Searcher).Search(e, ps)
+		if !t.Run("error", test.Error(e.HasError, err)) || e.HasError {
 			return
 		}
 	})
 
 	// Execute without errors
 	t.Run("evaluator succeeds", func(t *testing.T) {
-		e := &MockEvaluator{HasError: false}
-		rs, err := new(Searcher).Search(context.Background(), e, ps)
-		if !t.Run("no error", testError(e.HasError, err)) || e.HasError {
+		e := &mock.Evaluator{HasError: false}
+		rs, err := new(Searcher).Search(e, ps)
+		if !t.Run("no error", test.Error(e.HasError, err)) || e.HasError {
 			return
 		}
 
@@ -51,23 +51,6 @@ func TestSearcherSearch(t *testing.T) {
 
 }
 
-func testError(hasError bool, err error) func(*testing.T) {
-	return func(t *testing.T) {
-
-		// An error was expected
-		if hasError && err == nil {
-			t.Errorf("error was expected but none was returned")
-			t.FailNow()
-		}
-
-		// No error was expected
-		if !hasError && err != nil {
-			t.Errorf("no error was expected. actual: %v", err)
-			t.FailNow()
-		}
-	}
-}
-
 func TestWithSearcher(t *testing.T) {
 	e := new(evo.Experiment)
 	err := WithSearcher()(e)
@@ -77,25 +60,4 @@ func TestWithSearcher(t *testing.T) {
 	if _, ok := e.Searcher.(*Searcher); !ok {
 		t.Errorf("searcher incorrectly set")
 	}
-}
-
-type MockEvaluator struct {
-	Called   int
-	HasError bool
-	HasSolve bool
-}
-
-func (e *MockEvaluator) Evaluate(ctx context.Context, p evo.Phenome) (r evo.Result, err error) {
-	e.Called++
-	if e.HasError {
-		err = errors.New("mock transcriber error")
-		return
-	}
-	r = evo.Result{
-		ID:      p.ID,
-		Fitness: 1.0 / float64(p.ID),
-		Novelty: float64(p.ID),
-		Solved:  e.HasSolve,
-	}
-	return
 }

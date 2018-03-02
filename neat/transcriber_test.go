@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"testing"
 
 	"github.com/klokare/evo"
@@ -155,7 +154,7 @@ func TestTranscriber(t *testing.T) {
 			z := new(Transcriber)
 
 			// Transcribe the genome
-			dec, err := z.Transcribe(context.Background(), c.Encoded)
+			dec, err := z.Transcribe(c.Encoded)
 
 			// There should be no error
 			t.Run("error", test.Error(c.HasError, err))

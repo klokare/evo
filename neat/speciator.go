@@ -1,7 +1,6 @@
 package neat
 
 import (
-	"context"
 	"errors"
 
 	"github.com/klokare/evo"
@@ -29,7 +28,7 @@ type Speciator struct {
 }
 
 // Speciate the population
-func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err error) {
+func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 
 	// Check for known errors
 	if s.Distancer == nil {
@@ -42,6 +41,7 @@ func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err erro
 
 	// Map existing species
 	m := make(map[int64][]evo.Genome, len(pop.Species)+5)
+	a := make(map[int64]bool, len(pop.Species)+5) // tracks new assignments
 	for _, species := range pop.Species {
 		m[species.ID] = make([]evo.Genome, 0, 10)
 	}
@@ -70,6 +70,7 @@ func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err erro
 				genomes = m[genome.SpeciesID]
 				genomes = append(genomes, genome)
 				m[genome.SpeciesID] = genomes
+				a[genome.SpeciesID] = true
 				break
 			}
 		}
@@ -86,6 +87,7 @@ func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err erro
 			genomes := make([]evo.Genome, 0, 10)
 			genomes = append(genomes, genome)
 			m[genome.SpeciesID] = genomes
+			a[genome.SpeciesID] = true
 		}
 
 		// Save the genome back to the population
@@ -104,9 +106,9 @@ func (s *Speciator) Speciate(ctx context.Context, pop *evo.Population) (err erro
 	}
 
 	// Adjust the compatibile threshold
-	if len(pop.Species) < s.TargetSpecies {
+	if len(a) > s.TargetSpecies {
 		s.CompatibilityThreshold += s.CompatibilityModifier
-	} else if len(pop.Species) > s.TargetSpecies {
+	} else if len(a) < s.TargetSpecies {
 		s.CompatibilityThreshold -= s.CompatibilityModifier
 		if s.CompatibilityThreshold < s.CompatibilityModifier {
 			s.CompatibilityThreshold = s.CompatibilityModifier

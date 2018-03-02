@@ -1,8 +1,6 @@
 package serial
 
 import (
-	"context"
-
 	"github.com/klokare/evo"
 )
 
@@ -10,10 +8,10 @@ import (
 type Searcher struct{}
 
 // Search the solution space with the phenomes
-func (s Searcher) Search(ctx context.Context, eval evo.Evaluator, phenomes []evo.Phenome) (results []evo.Result, err error) {
+func (s Searcher) Search(eval evo.Evaluator, phenomes []evo.Phenome) (results []evo.Result, err error) {
 	results = make([]evo.Result, len(phenomes))
 	for i, p := range phenomes {
-		if results[i], err = eval.Evaluate(ctx, p); err != nil {
+		if results[i], err = eval.Evaluate(p); err != nil {
 			return
 		}
 	}

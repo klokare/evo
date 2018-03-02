@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -14,6 +13,7 @@ import (
 )
 
 var runs = flag.Int("runs", 1, "number of runs to execute")
+var compare = flag.Bool("compare", false, "run in comparison mode")
 
 func main() {
 
@@ -28,14 +28,14 @@ func main() {
 	}
 
 	// Describe the experiment
-	options := neat.WithOptions(cfg) // begin with NEAT experiment
-	options = append(options,
-		xor.WithEvaluator(),                 // add the XOR evaluator
-		example.WithProgress(evo.ByFitness), // display progress
-	)
+	options := neat.WithOptions(cfg)               // begin with NEAT experiment
+	options = append(options, xor.WithEvaluator()) // add the XOR evaluator
+	if !*compare {
+		options = append(options, example.WithProgress(evo.ByFitness)) // display progress
+	}
 
 	// Run the experiment
-	pops, errs := evo.Batch(context.Background(), *runs, 100, options...)
+	pops, errs := evo.Batch(*runs, 100, options...)
 	for i, err := range errs {
 		if err != nil {
 			log.Println("error in run", i, " was", err)
@@ -62,11 +62,15 @@ func main() {
 			failed++
 		}
 	}
-	fmt.Printf("mean generations: %.2f, nodes: %.2f, conns: %.2f\n",
-		float64(gens)/float64(len(pops)-failed),
-		float64(nodes)/float64(len(pops)-failed),
-		float64(conns)/float64(len(pops)-failed),
-	)
-	fmt.Println(failed, "failures out of", len(pops), "runs")
-	//fmt.Println(len(pops), failed, float64(nodes)/float64(len(pops)-failed), float64(conns)/float64(len(pops)-failed), 100*float64(gens)/float64(len(pops)-failed))
+	if !*compare {
+		fmt.Printf("mean generations: %.2f, nodes: %.2f, conns: %.2f\n",
+			float64(gens)/float64(len(pops)-failed),
+			float64(nodes)/float64(len(pops)-failed),
+			float64(conns)/float64(len(pops)-failed),
+		)
+		fmt.Println(failed, "failures out of", len(pops), "runs")
+	} else {
+		// fmt.Println(failed, "failures out of", len(pops), "runs")
+		fmt.Println(len(pops), failed, float64(nodes)/float64(len(pops)-failed), float64(conns)/float64(len(pops)-failed), 100*float64(gens)/float64(len(pops)-failed))
+	}
 }

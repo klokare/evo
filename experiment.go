@@ -1,12 +1,11 @@
 package evo
 
 import (
-	"context"
 	"errors"
-	"runtime"
 	"sort"
-	"sync"
 	"sync/atomic"
+
+	"github.com/klokare/evo/internal/workers"
 )
 
 // MinFitness is the minimum recognised fitness. Anything lower will be set to this. Positive
@@ -19,7 +18,8 @@ type Option func(*Experiment) error
 
 // Known errors
 var (
-	ErrMissingRequiredHelper = errors.New("missing required helper")
+	ErrMissingRequiredHelper        = errors.New("missing required helper")
+	ErrMissingNetworkFromTranslator = errors.New("successful translation did not return a network")
 )
 
 // Event is key used with a Listener
@@ -33,7 +33,7 @@ const (
 
 // Listener functions are called when the event to which they are subscribed occurs. The final flag
 // is true when the experiment is solved or on its final iteration
-type Listener func(ctx context.Context, final bool, pop Population) error
+type Listener func(final bool, pop Population) error
 
 // An Experiment comprises the helpers necessary for creating, evaluating, and advancing a
 // population in the search of a solution (or simply a better solver) of a particular problem.
@@ -43,7 +43,7 @@ type Experiment struct {
 	// Required helpers
 	Crosser
 	Evaluator
-	Populator
+	Seeder
 	Searcher
 	Selector
 	Speciator
@@ -64,30 +64,33 @@ type Experiment struct {
 
 // Batch performs r or more runs of an experiment, each created with n iterations and using the
 // options. Batch retuns each of the resulting populations.
-func Batch(ctx context.Context, r, n int, options ...Option) (pops []Population, errs []error) {
+func Batch(r, n int, options ...Option) (pops []Population, errs []error) {
 
-	ch := make(chan int)
-	go func(ch chan int) {
-		for i := 0; i < r; i++ {
-			ch <- i
-		}
-		close(ch)
-	}(ch)
+	// Create the tasks
+	type task struct {
+		pop Population
+		err error
+	}
 
-	// Execute each run
+	tasks := make([]workers.Task, r)
+	for i := 0; i < r; i++ {
+		tasks[i] = new(task)
+	}
+
+	// Run the tasks
+	workers.Do(tasks, func(t workers.Task) {
+		x := t.(*task)
+		x.pop, x.err = Run(n, options...)
+	})
+
+	// Return the populations and errors
 	pops = make([]Population, r)
 	errs = make([]error, r)
-	wg := new(sync.WaitGroup)
-	for w := 0; w < runtime.NumCPU(); w++ {
-		wg.Add(1)
-		go func(ch <-chan int) {
-			defer wg.Done()
-			for i := range ch {
-				pops[i], errs[i] = Run(ctx, n, options...)
-			}
-		}(ch)
+	for i, t := range tasks {
+		x := t.(*task)
+		pops[i] = x.pop
+		errs[i] = x.err
 	}
-	wg.Wait()
 	return
 }
 
@@ -95,76 +98,59 @@ func Batch(ctx context.Context, r, n int, options ...Option) (pops []Population,
 // final state of the population is returned. Since an experiment may use a different configuration,
 // if the it relies on a restored population, only the genomes continue and will be reevaluated.
 // The species and previous evaluation results will be discarded.
-func Run(ctx context.Context, n int, options ...Option) (pop Population, err error) {
+func Run(n int, options ...Option) (pop Population, err error) {
 
-	// Run the experiment in separate go rountine so we can handle the context closing early
-	done := make(chan struct{})
-	go func(done chan struct{}) {
-
-		// Close the channel when exiting
-		defer close(done)
-
-		// Create a new experiment by applying the options
-		e := &Experiment{
-			listeners: make(map[Event][]Listener, 2),
+	// Create a new experiment by applying the options
+	e := &Experiment{
+		listeners: make(map[Event][]Listener, 2),
+	}
+	for _, option := range options {
+		if err = option(e); err != nil {
+			return
 		}
-		for _, option := range options {
-			if err = option(e); err != nil {
-				return
-			}
-		}
+	}
 
-		// Validate that the required options are present
-		if err = verify(e); err != nil {
+	// Validate that the required options are present
+	if err = verify(e); err != nil {
+		return
+	}
+
+	// Seed the "zero" population. The "zero" population is the one created from the seeds and
+	// will be advanced to create the first evaluable population. This is done so that both
+	// new and restored populations begin in the same state
+	if pop.Genomes, err = e.Seeder.Seed(); err != nil {
+		return
+	}
+	setSequence(e, pop.Genomes) // Determine the next genome ID
+
+	// Speciate the "zero" population
+	if err = e.Speciator.Speciate(&pop); err != nil {
+		return
+	}
+
+	// Iterate the experiment
+	solved := false
+	for i := 0; !solved && i < n; i++ {
+
+		// This is the last iteration
+		final := i == (n - 1)
+
+		// Advance the population
+		if err = advance(e.Selector, e.Crosser, e.Mutators, e.Speciator, e.lastGID, &pop); err != nil {
+			return
+		}
+		if err = e.publish(Advanced, solved || final, pop); err != nil {
 			return
 		}
 
-		// Create the initial population
-		if pop, err = e.Populator.Populate(ctx); err != nil {
+		// Evaluate the population
+		if solved, err = evaluate(e.Searcher, e.Evaluator, e.Transcriber, e.Translator, e.Compare, e.SpeciesDecayRate, &pop); err != nil {
+			return
+		}
+		if err = e.publish(Evaluated, solved || final, pop); err != nil {
 			return
 		}
 
-		// Set the sequence and reset the genomes
-		setSequence(e, pop.Genomes)
-
-		// Speciate the population
-		if err = e.Speciator.Speciate(ctx, &pop); err != nil {
-			return
-		}
-
-		// Iterate the experiment
-		solved := false
-		for i := 0; !solved && i < n; i++ {
-
-			// This is the last iteration
-			final := i == (n - 1)
-
-			// Evaluate the population
-			if solved, err = evaluate(ctx, e.Searcher, e.Evaluator, e.Transcriber, e.Translator, e.Compare, e.SpeciesDecayRate, &pop); err != nil {
-				return
-			}
-			if err = e.publish(ctx, Evaluated, solved || final, pop); err != nil {
-				return
-			}
-
-			// Advance the population
-			if !solved && !final {
-				if err = advance(ctx, e.Selector, e.Crosser, e.Mutators, e.Speciator, e.lastGID, &pop); err != nil {
-					return
-				}
-				if err = e.publish(ctx, Advanced, solved || final, pop); err != nil {
-					return
-				}
-			}
-		}
-	}(done)
-
-	// Experiment is complete, return
-	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-	case <-done:
-		// experiment ended normally
 	}
 	return
 }
@@ -183,9 +169,9 @@ func (e *Experiment) Subscribe(event Event, callback Listener) {
 
 // Publish an event to the listeners.
 // TODO: make concurrent
-func (e *Experiment) publish(ctx context.Context, event Event, final bool, pop Population) (err error) {
+func (e *Experiment) publish(event Event, final bool, pop Population) (err error) {
 	for _, callback := range e.listeners[event] {
-		if err = callback(ctx, final, pop); err != nil {
+		if err = callback(final, pop); err != nil {
 			return
 		}
 	}
@@ -194,7 +180,7 @@ func (e *Experiment) publish(ctx context.Context, event Event, final bool, pop P
 
 func verify(e *Experiment) (err error) {
 	check := []interface{}{
-		e.Crosser, e.Evaluator, e.Populator, e.Searcher, e.Selector, e.Speciator,
+		e.Crosser, e.Evaluator, e.Seeder, e.Searcher, e.Selector, e.Speciator,
 		e.Translator, e.Transcriber,
 	}
 	for _, h := range check {
@@ -216,21 +202,11 @@ func verify(e *Experiment) (err error) {
 
 func setSequence(e *Experiment, genomes []Genome) {
 	var max int64
-	for i, g := range genomes {
-
-		// This is a higher ID
+	for _, g := range genomes {
 		if max < g.ID {
 			max = g.ID
 		}
-
-		// Reset the genome
-		g.Fitness = 0.0
-		g.Novelty = 0.0
-		g.Solved = false
-		g.SpeciesID = 0
-		genomes[i] = g
 	}
-
 	e.lastGID = new(int64)
 	*e.lastGID = max
 }
@@ -239,17 +215,17 @@ func setSequence(e *Experiment, genomes []Genome) {
 // versions into phenomes. Those phenomes are sent to the searcher along with the evaluator and
 // the results are used to update the genomes and species of the population. Any solution will be
 // detected while updating the genomes.
-func evaluate(ctx context.Context, srch Searcher, eval Evaluator, trsc Transcriber, tran Translator, cmp Compare, decay float64, pop *Population) (solved bool, err error) {
+func evaluate(srch Searcher, eval Evaluator, trsc Transcriber, tran Translator, cmp Compare, decay float64, pop *Population) (solved bool, err error) {
 
 	// Create the phenomes
 	var phenomes []Phenome
-	if phenomes, err = createPhenomes(ctx, trsc, tran, pop.Genomes); err != nil {
+	if phenomes, err = createPhenomes(trsc, tran, pop.Genomes); err != nil {
 		return
 	}
 
 	// Evaluate the phenomes
 	var results []Result
-	if results, err = srch.Search(ctx, eval, phenomes); err != nil {
+	if results, err = srch.Search(eval, phenomes); err != nil {
 		return
 	}
 
@@ -259,23 +235,51 @@ func evaluate(ctx context.Context, srch Searcher, eval Evaluator, trsc Transcrib
 	return
 }
 
-func createPhenomes(ctx context.Context, trsc Transcriber, tran Translator, genomes []Genome) (phenomes []Phenome, err error) {
-	phenomes = make([]Phenome, len(genomes))
+func createPhenomes(trsc Transcriber, tran Translator, genomes []Genome) (phenomes []Phenome, err error) {
+
+	// Define the tasks
+	type task struct {
+		genome  Genome
+		phenome Phenome
+		err     error
+	}
+
+	tasks := make([]workers.Task, len(genomes))
 	for i, g := range genomes {
+		tasks[i] = &task{genome: g}
+	}
+
+	// Peform the tasks
+	workers.Do(tasks, func(wt workers.Task) {
+		t := wt.(*task)
 		var dec Substrate
-		if dec, err = trsc.Transcribe(ctx, g.Encoded); err != nil {
+		if dec, t.err = trsc.Transcribe(t.genome.Encoded); t.err != nil {
 			return
 		}
 		var net Network
-		if net, err = tran.Translate(ctx, dec); err != nil {
+		if net, t.err = tran.Translate(dec); t.err != nil {
+			return
+		} else if net == nil {
+			t.err = ErrMissingNetworkFromTranslator
 			return
 		}
-		phenomes[i] = Phenome{
-			ID:      g.ID,
-			Traits:  make([]float64, len(g.Traits)),
+		t.phenome = Phenome{
+			ID:      t.genome.ID,
+			Traits:  make([]float64, len(t.genome.Traits)),
 			Network: net,
 		}
-		copy(phenomes[i].Traits, g.Traits)
+		copy(t.phenome.Traits, t.genome.Traits)
+	})
+
+	// Return the phenomes
+	phenomes = make([]Phenome, 0, len(genomes))
+	for _, wt := range tasks {
+		t := wt.(*task)
+		if t.err != nil {
+			err = t.err
+			return
+		}
+		phenomes = append(phenomes, t.phenome)
 	}
 	return
 }
@@ -299,48 +303,61 @@ func updateGenomes(genomes []Genome, results []Result) (solved bool) {
 // which belongs to the species.
 func updateSpecies(cmp Compare, decay float64, species []Species, genomes []Genome) {
 
-	// Separate the genomes by species
-	var gs []Genome
-	var ok bool
-	m := make(map[int64][]Genome, len(species))
-	for _, g := range genomes {
-		if gs, ok = m[g.SpeciesID]; !ok {
-			gs = make([]Genome, 0, len(genomes))
+	// Species begin to decay but can be reset below with a new champion. Doing it in this loop will
+	// update species even if there are no genomes in it.
+	sort.Slice(species, func(i, j int) bool { return species[i].ID < species[j].ID })
+	for i := 0; i < len(species); i++ {
+		species[i].Decay += decay
+		if species[i].Decay > 1.0 {
+			species[i].Decay = 1.0
 		}
-		gs = append(gs, g)
-		m[g.SpeciesID] = gs
 	}
 
-	// Iterate the species
-	for i, s := range species {
+	// Sort the genomes first by species then by the comparison function, complexity, and age
+	SortBy(genomes,
+		func(g1, g2 Genome) int8 {
+			// reverse sort the species
+			if g1.SpeciesID == g2.SpeciesID {
+				return 0
+			} else if g1.SpeciesID > g2.SpeciesID {
+				return -1
+			}
+			return 1
+		},
+		cmp, ByComplexity, ByAge,
+	)
 
-		// Determine the current champion
-		gs = m[s.ID]
-		SortBy(gs, BySolved, cmp, ByComplexity, ByAge) // This produces and order with no ties
-		champ := gs[len(gs)-1]
+	// Iterate the genomes and update the species
+	var last int64 = -1
+	s := 0
+	for i := len(genomes) - 1; i >= 0; i-- {
 
-		// Update the decay and champion properties
-		if s.Champion != champ.ID {
-			// New champion, reset decay
-			s.Decay = 0.0
-			s.Champion = champ.ID
-		} else {
-			s.Decay += decay
-			if s.Decay > 1.0 {
-				s.Decay = 1.0
+		// Note the genome
+		g := genomes[i]
+
+		// Advance to the correct species
+		for species[s].ID < g.SpeciesID {
+			s++
+		}
+
+		// Update the champion and/or decay
+		if species[s].ID != last { // the champion is the first genome we see for a species
+			if species[s].Champion != g.ID {
+				species[s].Champion = g.ID
+				species[s].Decay = 0.0
 			}
 		}
-		species[i] = s
+		last = species[s].ID
 	}
 }
 
 // Advances the population by one iteration
-func advance(ctx context.Context, sel Selector, crs Crosser, mutators []Mutator, spe Speciator, lastGID *int64, pop *Population) (err error) {
+func advance(sel Selector, crs Crosser, mutators []Mutator, spe Speciator, lastGID *int64, pop *Population) (err error) {
 
 	// Select the genomes to continue to the next iteration and the parents of future offspring
 	var continuing []Genome
 	var parents [][]Genome
-	if continuing, parents, err = sel.Select(ctx, *pop); err != nil {
+	if continuing, parents, err = sel.Select(*pop); err != nil {
 		return
 	}
 
@@ -350,30 +367,13 @@ func advance(ctx context.Context, sel Selector, crs Crosser, mutators []Mutator,
 	}
 
 	// For each parenting group, create an offspring
+	// TODO: make concurrent
+	var child Genome
 	offspring := make([]Genome, 0, len(parents))
 	for _, pgrp := range parents {
-
-		// Cross the parents to make the offspring
-		var child Genome
-		if child, err = crs.Cross(ctx, pgrp...); err != nil {
+		if child, err = makeChild(crs, mutators, atomic.AddInt64(lastGID, 1), pgrp); err != nil {
 			return
 		}
-
-		// Assign a new ID
-		child.ID = atomic.AddInt64(lastGID, 1)
-
-		// Mutate
-		n := child.Complexity()
-		for _, m := range mutators {
-			if err = m.Mutate(ctx, &child); err != nil {
-				return
-			}
-			if child.Complexity() != n {
-				break // Do not continue to mutate if structure changes. Cannot remember where I read this but there was an admonsiment not to do allow other mutations when the structure changes
-			}
-		}
-
-		// Save the child
 		offspring = append(offspring, child)
 	}
 
@@ -383,8 +383,30 @@ func advance(ctx context.Context, sel Selector, crs Crosser, mutators []Mutator,
 	pop.Genomes = append(pop.Genomes, offspring...)
 
 	// Speciate
-	if err = spe.Speciate(ctx, pop); err != nil {
+	if err = spe.Speciate(pop); err != nil {
 		return
+	}
+	return
+}
+
+func makeChild(crs Crosser, mutators []Mutator, gid int64, parents []Genome) (child Genome, err error) {
+	// Cross the parents to make the offspring
+	if child, err = crs.Cross(parents...); err != nil {
+		return
+	}
+
+	// Assign a new ID
+	child.ID = gid
+
+	// Mutate
+	n := child.Complexity()
+	for _, m := range mutators {
+		if err = m.Mutate(&child); err != nil {
+			return
+		}
+		if child.Complexity() != n {
+			break // Do not continue to mutate if structure changes. Cannot remember where I read this but there was an admonsiment not to allow other mutations when the structure changes
+		}
 	}
 	return
 }

@@ -1,8 +1,6 @@
 package neat
 
 import (
-	"context"
-
 	"github.com/klokare/evo"
 )
 
@@ -10,7 +8,7 @@ import (
 type Transcriber struct{}
 
 // Transcribe the genome into the nodes and connections used in network translation
-func (t Transcriber) Transcribe(ctx context.Context, enc evo.Substrate) (dec evo.Substrate, err error) {
+func (t Transcriber) Transcribe(enc evo.Substrate) (dec evo.Substrate, err error) {
 
 	// Copy the nodes
 	dec.Nodes = make([]evo.Node, len(enc.Nodes))

@@ -1,7 +1,6 @@
 package example
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -18,7 +17,7 @@ type Progress struct {
 
 // Show is a callback function which can be subscribed to the experiment to show a progress
 // summary (when final = false) or detail (when final = true).
-func (d *Progress) Show(ctx context.Context, final bool, pop evo.Population) error {
+func (d *Progress) Show(final bool, pop evo.Population) error {
 
 	// Ignore if there is not a change in generation
 	if !final && pop.Generation == d.lastGen {

@@ -1,0 +1,38 @@
+{
+
+    "BoxesResolution": 11,
+    "NumInputs": 121,
+    "NumOutputs": 121,
+    "DisconnectRate": 1.0,
+
+
+	"SpeciesDecayRate": 0.06667,
+    "EnableProbability": 0.25,
+    "NodesCoefficient": 0.0,
+	"ActivationCoefficient": 0.0,
+    "BiasCoefficient": 1.0,
+	"ConnsCoefficient": 2.0,
+    "WeightCoefficient": 1.0,
+    "PopulationSize": 100,
+	"NumTraits": 0,
+	"OutputActivation": 3,
+	"BiasPower": 3,
+	"MaxBias": 8.0,
+	"WeightPower": 3,
+	"MaxWeight": 8.0,
+    "MaxStagnation": 15,
+	"MutateOnlyProbability": 0.25,
+	"InterspeciesMateProbability": 0.001,
+    "CompatibilityThreshold": 10.0,
+	"CompatibilityModifier": 0.3,
+	"TargetSpecies": 8,
+	"MutateBiasProbability": 0.8,
+	"ReplaceBiasProbability": 0.1,
+    "AddNodeProbability": 0.03,
+	"AddConnProbability": 0.1,
+    "DelNodeProbability": 0.03,
+    "DelConnProbability": 0.1,
+    "HiddenActivation": 3,
+    "MutateWeightProbability": 0.8,
+	"ReplaceWeightProbability": 0.1
+}

@@ -15,6 +15,7 @@ type Distancer interface {
 // Compatibility distance measurer using the methods described by Stanley
 type Compatibility struct {
 	NodesCoefficient      float64
+	BiasCoefficient       float64
 	ActivationCoefficient float64
 	ConnsCoefficient      float64
 	WeightCoefficient     float64
@@ -24,17 +25,17 @@ type Compatibility struct {
 func (c Compatibility) Distance(a, b evo.Genome) (d float64, err error) {
 
 	// Calculate the number of disjoint/excess nodes
-	n, f := nodeDistance(a.Encoded.Nodes, b.Encoded.Nodes)
+	n, f, g := nodeDistance(a.Encoded.Nodes, b.Encoded.Nodes)
 
 	// Calculate the number of disjoint/excess conns as well as the average difference in weight maggnitude
 	s, w := connDistance(a.Encoded.Conns, b.Encoded.Conns)
 
 	// Return the compatibility distance
-	d = n*c.NodesCoefficient + f*c.ActivationCoefficient + s*c.ConnsCoefficient + w*c.WeightCoefficient
+	d = n*c.NodesCoefficient + f*c.ActivationCoefficient + g*c.BiasCoefficient + s*c.ConnsCoefficient + w*c.WeightCoefficient
 	return
 }
 
-func nodeDistance(nodes1, nodes2 []evo.Node) (c, a float64) {
+func nodeDistance(nodes1, nodes2 []evo.Node) (c, a, b float64) {
 
 	// Sort the nodes
 	sort.Slice(nodes1, func(i, j int) bool { return nodes1[i].Compare(nodes1[j]) < 0 })
@@ -56,6 +57,7 @@ func nodeDistance(nodes1, nodes2 []evo.Node) (c, a float64) {
 			if nodes1[i].Activation != nodes2[j].Activation {
 				a += 1.0
 			}
+			b += math.Abs(nodes1[i].Bias - nodes2[j].Bias)
 			i++
 			j++
 		}
@@ -65,6 +67,7 @@ func nodeDistance(nodes1, nodes2 []evo.Node) (c, a float64) {
 	c += float64(len(nodes1) - i + len(nodes2) - j)
 	if n > 0 {
 		a /= n
+		b /= n
 	}
 	return
 }

@@ -20,8 +20,8 @@ Version|Description
 0.1|core library and tests (completed)
 0.2|default configurer (completed)
 0.3|default network and translator (completed)
-0.4|NEAT-equivalent package and XOR experiment
-0.5|phased mutator and OCR experiment
+0.4|NEAT-equivalent package and XOR experiment (completed)
+0.5|phased mutator and OCR experiment (completed)
 0.6|HyperNEAT package and boxes experiment
 0.7|ES-HyperNEAT package and mazes experiment
 0.8|novelty package and updated mazes experiment
