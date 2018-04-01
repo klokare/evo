@@ -7,6 +7,7 @@ type Conn struct {
 	Source, Target Position // The positions of the source and target nodes
 	Weight         float64  // The connection weight
 	Enabled        bool     // True if this connection should be used to create a synapse
+	Locked         bool     // Locked connections cannot be removed or split
 }
 
 // String returns a description of the connection

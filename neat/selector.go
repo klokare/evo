@@ -17,7 +17,10 @@ type Selector struct {
 	PopulationSize              int
 	MutateOnlyProbability       float64
 	InterspeciesMateProbability float64
-	Compare                     evo.Compare
+	DisableContinuing           bool
+	Elitism                     float64
+	SurvivalRate                float64
+	evo.Comparison
 
 	// Internal state
 	prevBest     int64   // The ID of the best genome from previous generations
@@ -29,7 +32,7 @@ type Selector struct {
 func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
 
 	// Sort and rank the genomes
-	ranks := sortRank(s.Compare, pop.Genomes)
+	ranks := sortRank(s.Comparison, pop.Genomes)
 
 	// Identify the current champion
 	best := pop.Genomes[0]
@@ -43,7 +46,9 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 		}
 	}
 	if stagnant {
-		continuing = []evo.Genome{best}
+		if !s.DisableContinuing {
+			continuing = []evo.Genome{best}
+		}
 		parents = make([][]evo.Genome, s.PopulationSize-len(continuing))
 		for i := 0; i < len(parents); i++ {
 			parents[i] = []evo.Genome{best}
@@ -86,31 +91,36 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 	}
 
 	// Determine continuing
-	continuing = make([]evo.Genome, 0, len(avg))
-	for sid, genomes := range g2s {
-		if avg[sid] > 0.0 { // species is not stagnant
-			continuing = append(continuing, genomes[0])
-		}
-	}
-
-	// Ensure best is continuing, if necessary
-	if avg[best.SpeciesID] == 0.0 { // best is stagnant
-		found := false
-		for _, g := range continuing {
-			if s.Compare(best, g) == 0 { // Another champion exists
-				found = true
-				break
+	if !s.DisableContinuing {
+		continuing = make([]evo.Genome, 0, len(avg))
+		for sid, genomes := range g2s {
+			if avg[sid] > 0.0 { // species is not stagnant
+				continuing = append(continuing, genomes[0])
 			}
 		}
-		if !found {
-			continuing = append(continuing, best)
-			//	parents = append(parents, []evo.Genome{best}) // Give the species 1 more chance
+
+		// Ensure best is continuing, if necessary
+		if avg[best.SpeciesID] == 0.0 { // best is stagnant
+			found := false
+			for _, g := range continuing {
+				if s.Compare(best, g) == 0 { // Another champion exists
+					found = true
+					break
+				}
+			}
+			if !found {
+				continuing = append(continuing, best)
+				//	parents = append(parents, []evo.Genome{best}) // Give the species 1 more chance
+			}
 		}
 	}
 
 	// Calculate offspring
 	cnt := 0
 	tgt := s.PopulationSize - len(continuing) - len(parents)
+	if tgt <= 0 {
+		return // population size fulfilled with continuing
+	}
 	off := make(map[int64]int, len(avg))
 	for sid, x := range avg {
 		if x > 0.0 {
@@ -176,7 +186,7 @@ func (s *Selector) ToggleMutateOnly(on bool) error {
 // Sort and rank the genomes. The sort is a reverse sort (best in first position) and deterministic
 // (always producing the same order). The rank is relative order, allowing for ties, where best is
 // float64(len(genomes)) and worst, assuming no tie, is 1.
-func sortRank(fn evo.Compare, genomes []evo.Genome) (ranks map[int64]float64) {
+func sortRank(fn evo.Comparison, genomes []evo.Genome) (ranks map[int64]float64) {
 
 	// Sort the genomes using main compare function and others to get separation in rank
 	evo.SortBy(genomes, fn, evo.ByComplexity, evo.ByAge)
@@ -191,7 +201,7 @@ func sortRank(fn evo.Compare, genomes []evo.Genome) (ranks map[int64]float64) {
 	n := len(genomes)
 	ranks[genomes[0].ID] = float64(n)
 	for i := 1; i < n; i++ {
-		if fn(genomes[i], genomes[i-1]) == 0 { // deserves same rank)
+		if fn.Compare(genomes[i], genomes[i-1]) == 0 { // deserves same rank)
 			ranks[genomes[i].ID] = ranks[genomes[i-1].ID]
 		} else {
 			ranks[genomes[i].ID] = float64(n - i)
@@ -252,21 +262,4 @@ func roulette(rng evo.Random, genomes []evo.Genome, ranks map[int64]float64) (pa
 		}
 	}
 	return
-}
-
-// WithSelector sets the experiment's selector to a configured NEAT selector
-func WithSelector(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		z := new(Selector)
-		if err = cfg.Configure(z); err != nil {
-			return
-		}
-		if e.Compare == nil {
-			err = errors.New("experiment should have compare function set before adding NEAT selector")
-			return
-		}
-		z.Compare = e.Compare
-		e.Selector = z
-		return
-	}
 }

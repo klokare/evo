@@ -7,7 +7,6 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/mock"
-	"github.com/klokare/evo/internal/test"
 )
 
 func TestSpeciatorSpeciate(t *testing.T) {
@@ -188,7 +187,7 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			err := s.Speciate(&c.Actual)
 
 			// Test for errors
-			if !t.Run("error", test.Error(c.HasError, err)) || c.HasError {
+			if !t.Run("error", mock.Error(c.HasError, err)) || c.HasError {
 				return
 			}
 
@@ -350,22 +349,6 @@ func TestSpeciatorModify(t *testing.T) {
 				t.Errorf("incorrect compatibility threshold: expected %f, actual %f", c.Expected, s.CompatibilityThreshold)
 			}
 		})
-	}
-}
-
-func TestWithSpeciator(t *testing.T) {
-	e := new(evo.Experiment)
-
-	// Configurer has no error
-	err := WithSpeciator(&mock.Configurer{})(e)
-	if err != nil {
-		t.Errorf("error not expected but had: %v", err)
-	}
-
-	// Configurer has error
-	err = WithSpeciator(&mock.Configurer{HasError: true})(e)
-	if err == nil {
-		t.Errorf("error expected but not found")
 	}
 }
 

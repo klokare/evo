@@ -13,7 +13,7 @@ type Weight struct {
 }
 
 // Mutate a genome by perturbing or replacing its connections' weights
-func (z *Weight) Mutate(g *evo.Genome) (err error) {
+func (z Weight) Mutate(g *evo.Genome) (err error) {
 	rng := evo.NewRandom()
 	for i, c := range g.Encoded.Conns {
 		if rng.Float64() < z.MutateWeightProbability {
@@ -31,22 +31,4 @@ func (z *Weight) Mutate(g *evo.Genome) (err error) {
 		}
 	}
 	return
-}
-
-// WithWeight adds the configured weight mutator to the experiment
-func WithWeight(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		z := new(Weight)
-		if err = cfg.Configure(z); err != nil {
-			return
-		}
-
-		// Do not continue if there is no chance for mutation
-		if z.MutateWeightProbability == 0.0 {
-			return
-		}
-
-		e.Mutators = append(e.Mutators, z)
-		return
-	}
 }

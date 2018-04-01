@@ -8,6 +8,7 @@ type Node struct {
 	Neuron             // Then neuron type
 	Activation         // The activation type
 	Bias       float64 // Bias value for the neuron
+	Locked     bool    // Locked nodes cannot be removed
 }
 
 // String reutnrs the description of the node

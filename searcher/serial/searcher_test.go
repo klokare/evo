@@ -5,7 +5,6 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/mock"
-	"github.com/klokare/evo/internal/test"
 )
 
 func TestSearcherSearch(t *testing.T) {
@@ -17,7 +16,7 @@ func TestSearcherSearch(t *testing.T) {
 	t.Run("evaluator error", func(t *testing.T) {
 		e := &mock.Evaluator{HasError: true}
 		_, err := new(Searcher).Search(e, ps)
-		if !t.Run("error", test.Error(e.HasError, err)) || e.HasError {
+		if !t.Run("error", mock.Error(e.HasError, err)) || e.HasError {
 			return
 		}
 	})
@@ -26,7 +25,7 @@ func TestSearcherSearch(t *testing.T) {
 	t.Run("evaluator succeeds", func(t *testing.T) {
 		e := &mock.Evaluator{HasError: false}
 		rs, err := new(Searcher).Search(e, ps)
-		if !t.Run("no error", test.Error(e.HasError, err)) || e.HasError {
+		if !t.Run("no error", mock.Error(e.HasError, err)) || e.HasError {
 			return
 		}
 
@@ -49,15 +48,4 @@ func TestSearcherSearch(t *testing.T) {
 		}
 	})
 
-}
-
-func TestWithSearcher(t *testing.T) {
-	e := new(evo.Experiment)
-	err := WithSearcher()(e)
-	if err != nil {
-		t.Errorf("error was not expected: %v", err)
-	}
-	if _, ok := e.Searcher.(*Searcher); !ok {
-		t.Errorf("searcher incorrectly set")
-	}
 }

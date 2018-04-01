@@ -4,18 +4,6 @@ import (
 	"testing"
 )
 
-func TestWithCompare(t *testing.T) {
-	fn := ByFitness
-	e := new(Experiment)
-	err := WithCompare(fn)(e)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if e.Compare == nil {
-		t.Errorf("compare function not set properly")
-	}
-}
-
 func TestByFitness(t *testing.T) {
 	var cases = []struct {
 		Desc     string
@@ -44,7 +32,7 @@ func TestByFitness(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			x := ByFitness(c.A, c.B)
+			x := ByFitness.Compare(c.A, c.B)
 			if x != c.Expected {
 				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}
@@ -80,7 +68,7 @@ func TestByNovelty(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			x := ByNovelty(c.A, c.B)
+			x := ByNovelty.Compare(c.A, c.B)
 			if x != c.Expected {
 				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}
@@ -116,7 +104,7 @@ func TestByAge(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			x := ByAge(c.A, c.B)
+			x := ByAge.Compare(c.A, c.B)
 			if x != c.Expected {
 				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}
@@ -152,7 +140,7 @@ func TestByComplexity(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			x := ByComplexity(c.A, c.B)
+			x := ByComplexity.Compare(c.A, c.B)
 			if x != c.Expected {
 				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}
@@ -194,7 +182,7 @@ func TestBySolved(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
-			x := BySolved(c.A, c.B)
+			x := BySolved.Compare(c.A, c.B)
 			if x != c.Expected {
 				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
 			}

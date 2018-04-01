@@ -37,21 +37,3 @@ func (b Bias) Mutate(g *evo.Genome) (err error) {
 	}
 	return
 }
-
-// WithBias adds the configured bias mutator to the experiment
-func WithBias(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		z := new(Bias)
-		if err = cfg.Configure(z); err != nil {
-			return
-		}
-
-		// Do not continue if there is no chance for mutation
-		if z.MutateBiasProbability == 0.0 {
-			return
-		}
-
-		e.Mutators = append(e.Mutators, z)
-		return
-	}
-}

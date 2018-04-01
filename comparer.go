@@ -1,12 +1,14 @@
 package evo
 
-import "sort"
+import (
+	"sort"
+)
 
 // SortBy orders the genome by the comparison functions.
-func SortBy(genomes []Genome, comparisons ...Compare) {
+func SortBy(genomes []Genome, comparisons ...Comparison) {
 	sort.Slice(genomes, func(i, j int) bool {
-		for _, compare := range comparisons {
-			x := compare(genomes[i], genomes[j])
+		for _, c := range comparisons {
+			x := c.Compare(genomes[i], genomes[j])
 			if x < 0 {
 				return true
 			} else if x > 0 {
@@ -17,74 +19,112 @@ func SortBy(genomes []Genome, comparisons ...Compare) {
 	})
 }
 
-// Compare two genomes for relative order
-type Compare func(a, b Genome) int8
+// Comparison two genomes for relative order
+type Comparison byte
 
-// WithCompare sets the experiment's comparison function to the specified Compare
-func WithCompare(fn Compare) Option {
-	return func(e *Experiment) error {
-		e.Compare = fn
-		return nil
-	}
-}
+// Known comparison types
+const (
+	ByFitness Comparison = iota + 1
+	ByNovelty
+	ByComplexity
+	ByAge
+	BySolved
+	BySpecies
+)
 
-// ByFitness returns the relative order of two genomes by fitness
-func ByFitness(a, b Genome) int8 {
-	switch {
-	case a.Fitness < b.Fitness:
-		return -1
-	case b.Fitness < a.Fitness:
-		return 1
+func (c Comparison) String() string {
+	switch c {
+	case ByFitness:
+		return "fitness"
+	case ByNovelty:
+		return "novelty"
+	case ByComplexity:
+		return "complexity"
+	case ByAge:
+		return "age"
+	case BySolved:
+		return "solved"
+	case BySpecies:
+		return "species"
 	default:
-		return 0
+		return "unknown comparison"
 	}
 }
 
-// ByNovelty returns the relative order of two genomes by novelty
-func ByNovelty(a, b Genome) int8 {
-	switch {
-	case a.Novelty < b.Novelty:
-		return -1
-	case b.Novelty < a.Novelty:
-		return 1
-	default:
-		return 0
+// Compare two genomes using the appropriate method
+func (c Comparison) Compare(a, b Genome) int8 {
+	switch c {
+
+	case ByNovelty:
+		switch {
+		case a.Novelty < b.Novelty:
+			return -1
+		case b.Novelty < a.Novelty:
+			return 1
+		default:
+			return 0
+		}
+
+	case ByComplexity:
+		switch {
+		case a.Complexity() > b.Complexity():
+			return -1
+		case a.Complexity() < b.Complexity():
+			return 1
+		default:
+			return 0
+		}
+
+	case ByAge:
+		switch {
+		case a.ID > b.ID:
+			return -1
+		case a.ID < b.ID:
+			return 1
+		default:
+			return 0
+		}
+
+	case BySolved:
+		switch {
+		case a.Solved && !b.Solved:
+			return 1
+		case b.Solved && !a.Solved:
+			return -1
+		default:
+			return 0
+		}
+
+	case BySpecies:
+		switch {
+		case a.SpeciesID < b.SpeciesID:
+			return -1
+		case b.SpeciesID < a.SpeciesID:
+			return 1
+		default:
+			return 0
+		}
+
+	default: // by fitness
+		switch {
+		case a.Fitness < b.Fitness:
+			return -1
+		case b.Fitness < a.Fitness:
+			return 1
+		default:
+			return 0
+		}
 	}
 }
 
-// BySolved returns the relative order of two genomes by solution state
-func BySolved(a, b Genome) int8 {
-	switch {
-	case a.Solved && !b.Solved:
-		return 1
-	case b.Solved && !a.Solved:
-		return -1
-	default:
-		return 0
+// Compares provides map of compare functions by name
+var (
+	Comparisons = map[string]Comparison{
+		"fitness":    ByFitness,
+		"age":        ByAge,
+		"solved":     BySolved,
+		"novelty":    ByNovelty,
+		"complexity": ByComplexity,
+		"species":    BySpecies,
 	}
-}
-
-// ByComplexity retuns the relative order of two genomes by their complexity. Note: a lower
-// complexity is better.
-func ByComplexity(a, b Genome) int8 {
-	switch {
-	case a.Complexity() > b.Complexity():
-		return -1
-	case a.Complexity() < b.Complexity():
-		return 1
-	default:
-		return 0
-	}
-}
-
-// ByAge retuns the relative order of two genomes by their age, using ID number as a proxy
-func ByAge(a, b Genome) int8 {
-	switch {
-	case a.ID > b.ID:
-		return -1
-	case a.ID < b.ID:
-		return 1
-	default:
-		return 0
-	}
-}
+)

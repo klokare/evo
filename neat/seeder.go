@@ -2,9 +2,9 @@ package neat
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/klokare/evo"
-	"github.com/klokare/evo/internal/float"
 )
 
 // Errors related to the Seeder
@@ -20,14 +20,10 @@ type Seeder struct {
 	NumTraits        int
 	DisconnectRate   float64
 	OutputActivation evo.Activation
-	BiasPower        float64
-	MaxBias          float64
-	WeightPower      float64
-	MaxWeight        float64
 }
 
-// Seed creates an initial genome from the specifications.
-func (s Seeder) Seed() (genomes []evo.Genome, err error) {
+// Seed creates an unitialised genome from the specifications.
+func (s Seeder) Seed() (g evo.Genome, err error) {
 
 	// Check for errors
 	if s.NumInputs <= 0 {
@@ -40,19 +36,12 @@ func (s Seeder) Seed() (genomes []evo.Genome, err error) {
 	}
 
 	// Create the seed genome
-	rng := evo.NewRandom()
-	g := evo.Genome{
-		Fitness: evo.MinFitness,
-		Traits:  make([]float64, s.NumTraits),
+	g = evo.Genome{
+		Traits: make([]float64, s.NumTraits),
 		Encoded: evo.Substrate{
 			Nodes: make([]evo.Node, 0, s.NumInputs+s.NumOutputs),
 			Conns: make([]evo.Conn, 0, s.NumInputs*s.NumOutputs),
 		},
-	}
-
-	// Create the traits
-	for i := 0; i < s.NumTraits; i++ {
-		g.Traits[i] = rng.Float64()
 	}
 
 	// Add the input nodes
@@ -78,35 +67,27 @@ func (s Seeder) Seed() (genomes []evo.Genome, err error) {
 			Position:   evo.Position{Layer: 1.0, X: x},
 			Neuron:     evo.Output,
 			Activation: s.OutputActivation,
-			Bias:       float.Min(s.MaxBias, float.Max(-s.MaxBias, rng.NormFloat64()*s.BiasPower)),
 		})
 	}
 
 	// Connect the sensors to the outputs
-	for _, src := range g.Encoded.Nodes[:s.NumInputs] {
-		for _, tgt := range g.Encoded.Nodes[s.NumInputs:] {
-			g.Encoded.Conns = append(g.Encoded.Conns, evo.Conn{
-				Source:  src.Position,
-				Target:  tgt.Position,
-				Weight:  float.Min(s.MaxWeight, float.Max(-s.MaxWeight, rng.NormFloat64()*s.WeightPower)),
-				Enabled: true,
-			})
+	if s.DisconnectRate < 1.0 {
+		rng := evo.NewRandom()
+		for _, src := range g.Encoded.Nodes[:s.NumInputs] {
+			for _, tgt := range g.Encoded.Nodes[s.NumInputs:] {
+				if rng.Float64() > s.DisconnectRate {
+					g.Encoded.Conns = append(g.Encoded.Conns, evo.Conn{
+						Source:  src.Position,
+						Target:  tgt.Position,
+						Enabled: true,
+					})
+				}
+			}
 		}
 	}
 
-	// Return the new genome
-	genomes = []evo.Genome{g}
+	// Ensure substrate is sorted
+	sort.Slice(g.Encoded.Nodes, func(i, j int) bool { return g.Encoded.Nodes[i].Compare(g.Encoded.Nodes[j]) < 0 })
+	sort.Slice(g.Encoded.Conns, func(i, j int) bool { return g.Encoded.Conns[i].Compare(g.Encoded.Conns[j]) < 0 })
 	return
-}
-
-// WithSeeder sets the experiment's seeder to a configured NEAT seeder
-func WithSeeder(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		s := new(Seeder)
-		if err = cfg.Configure(s); err != nil {
-			return
-		}
-		e.Seeder = s
-		return
-	}
 }

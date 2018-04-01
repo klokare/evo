@@ -39,7 +39,7 @@ const (
 	Sigmoid
 	SteepenedSigmoid
 	Tanh
-	InverseAbs
+	InverseAbs // Also known as soft sign
 	Sin
 	Gauss
 	ReLU
@@ -97,12 +97,12 @@ func (a Activation) Activate(x float64) float64 {
 
 // Activations provides map of activation functions by name
 var Activations = map[string]Activation{
-	"direct":           Direct,
-	"sigmoid":          Sigmoid,
-	"steepenedsigmoid": SteepenedSigmoid,
-	"tanh":             Tanh,
-	"inverseabs":       InverseAbs,
-	"sin":              Sin,
-	"gauss":            Gauss,
-	"relu":             ReLU,
+	"direct":            Direct,
+	"sigmoid":           Sigmoid,
+	"steepened-sigmoid": SteepenedSigmoid,
+	"tanh":              Tanh,
+	"inverse-abs":       InverseAbs,
+	"sin":               Sin,
+	"gauss":             Gauss,
+	"relu":              ReLU,
 }

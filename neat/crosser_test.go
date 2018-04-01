@@ -6,7 +6,6 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/mock"
-	"github.com/klokare/evo/internal/test"
 )
 
 func TestCrosserParentErrors(t *testing.T) {
@@ -22,7 +21,7 @@ func TestCrosserParentErrors(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.Desc, func(t *testing.T) {
 			_, err := z.Cross(c.Parents...)
-			t.Run("error", test.Error(true, err))
+			t.Run("error", mock.Error(true, err))
 		})
 	}
 }
@@ -238,11 +237,11 @@ func TestCrosser(t *testing.T) {
 
 			// Cross the parents
 			cmp := evo.ByFitness
-			crs := &Crosser{EnableProbability: 0.0, Compare: cmp}
+			crs := &Crosser{EnableProbability: 0.0, Comparison: cmp}
 			child, err := crs.Cross(c.Parents...)
 
 			// Check if error was expected
-			if t.Run("Error", test.Error(false, err)) == false {
+			if t.Run("Error", mock.Error(false, err)) == false {
 				t.Fail()
 			}
 			if err != nil {
@@ -401,7 +400,7 @@ func TestCrosserRandomness(t *testing.T) {
 	}
 
 	// Create a crosser
-	crs := &Crosser{Compare: evo.ByFitness}
+	crs := &Crosser{Comparison: evo.ByFitness}
 
 	// Run the tests
 	t.Run("traits", func(t *testing.T) {
@@ -873,11 +872,11 @@ func TestCrosserDisjointed(t *testing.T) {
 
 			// Cross the parents
 			cmp := evo.ByFitness
-			crs := &Crosser{EnableProbability: 0.0, Compare: cmp}
+			crs := &Crosser{EnableProbability: 0.0, Comparison: cmp}
 			child, err := crs.Cross(c.Parents...)
 
 			// Check if error was expected
-			if t.Run("Error", test.Error(false, err)) == false {
+			if t.Run("Error", mock.Error(false, err)) == false {
 				t.Fail()
 			}
 			if err != nil {
@@ -888,32 +887,5 @@ func TestCrosserDisjointed(t *testing.T) {
 			t.Run("Child", testCompareChild(child, c.Child))
 
 		})
-	}
-}
-
-func TestWithCrosser(t *testing.T) {
-	e := new(evo.Experiment)
-
-	// Experiment has no Comparer
-	err := WithCrosser(&mock.Configurer{})(e)
-	if err == nil {
-		t.Errorf("error expected but not found")
-	}
-
-	// Experiment has Comparer
-	e.Compare = evo.ByFitness
-	err = WithCrosser(&mock.Configurer{})(e)
-	if err != nil {
-		t.Errorf("error not expected but had: %v", err)
-	}
-	if _, ok := e.Crosser.(*Crosser); !ok {
-		t.Errorf("crosser incorrectly set")
-	}
-
-	// Configurer has error
-	e.Compare = evo.ByFitness
-	err = WithCrosser(&mock.Configurer{HasError: true})(e)
-	if err == nil {
-		t.Errorf("error expected but not found")
 	}
 }

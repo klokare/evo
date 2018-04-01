@@ -44,6 +44,9 @@ func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 	a := make(map[int64]bool, len(pop.Species)+5) // tracks new assignments
 	for _, species := range pop.Species {
 		m[species.ID] = make([]evo.Genome, 0, 10)
+		if s.lastSID < species.ID {
+			s.lastSID = species.ID
+		}
 	}
 
 	// Assign genomes to species
@@ -108,25 +111,11 @@ func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 	// Adjust the compatibile threshold
 	if len(a) > s.TargetSpecies {
 		s.CompatibilityThreshold += s.CompatibilityModifier
-	} else if len(a) < s.TargetSpecies {
+	} else if s.CompatibilityThreshold > s.CompatibilityModifier && len(a) < s.TargetSpecies {
 		s.CompatibilityThreshold -= s.CompatibilityModifier
 		if s.CompatibilityThreshold < s.CompatibilityModifier {
 			s.CompatibilityThreshold = s.CompatibilityModifier
 		}
 	}
 	return
-}
-
-// WithSpeciator sets the experiment's speciator to a configured NEAT speciator using default distancer
-func WithSpeciator(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		s := new(Speciator)
-		d := new(Compatibility)
-		if err = cfg.Configure(s, d); err != nil {
-			return
-		}
-		s.Distancer = d
-		e.Speciator = s
-		return
-	}
 }

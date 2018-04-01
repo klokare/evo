@@ -20,11 +20,17 @@ type Network struct {
 	Layers []Layer
 }
 
+type flexMatrix interface {
+	mat.Mutable
+	Add(a, b mat.Matrix)
+	Mul(a, b mat.Matrix)
+}
+
 // Activate activates the network using the incoming matrix of values
 func (net Network) Activate(inputs evo.Matrix) (outputs evo.Matrix, err error) {
 
 	// Prebuild the values with bias values
-	values := make([]*mat.Dense, len(net.Layers))
+	values := make([]flexMatrix, len(net.Layers))
 	n, _ := inputs.Dims()
 
 	for i := 1; i < len(values); i++ {
@@ -45,23 +51,19 @@ func (net Network) Activate(inputs evo.Matrix) (outputs evo.Matrix, err error) {
 
 	// Inputs may not be a dense matrix
 	var ok bool
-	if values[0], ok = inputs.(*mat.Dense); !ok {
-		if tmp, ok := inputs.(mat.Matrix); ok {
-			values[0] = mat.DenseCopyOf(tmp)
-		} else {
-			r, c := inputs.Dims()
-			tmp := mat.NewDense(r, c, nil)
-			for i := 0; i < r; i++ {
-				for j := 0; j < c; j++ {
-					tmp.Set(i, j, inputs.At(i, j))
-				}
+	if values[0], ok = inputs.(flexMatrix); !ok {
+		r, c := inputs.Dims()
+		tmp := mat.NewDense(r, c, nil)
+		for i := 0; i < r; i++ {
+			for j := 0; j < c; j++ {
+				tmp.Set(i, j, inputs.At(i, j))
 			}
-			values[0] = tmp
 		}
+		values[0] = tmp
 	}
 
 	// Iterate the layers
-	var tgt *mat.Dense
+	var tgt flexMatrix
 	for i := 1; i < len(net.Layers); i++ {
 
 		// Identify the target
@@ -94,7 +96,7 @@ func (net Network) Activate(inputs evo.Matrix) (outputs evo.Matrix, err error) {
 	return
 }
 
-func show(name string, m mat.Matrix) {
+func showMatrix(name string, m mat.Matrix) {
 	fa := mat.Formatted(m, mat.Prefix("    "), mat.Squeeze())
 	fmt.Printf("%s:\na = %v\n\n", name, fa)
 }

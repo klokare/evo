@@ -4,43 +4,7 @@ import (
 	"testing"
 
 	"github.com/klokare/evo"
-	"github.com/klokare/evo/internal/mock"
 )
-
-func TestWithComplexify(t *testing.T) {
-	t.Run("error", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{HasError: true}
-		err := WithComplexify(cfg)(e)
-		if err == nil {
-			t.Errorf("error expected")
-		}
-	})
-	t.Run("enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{AddConnProbability: 1.0, AddNodeProbability: 1.0}
-		err := WithComplexify(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) == 0 {
-			t.Errorf("incorrect number of mutators: expected 1, actual 0")
-		} else if _, ok := e.Mutators[0].(*Complexify); !ok {
-			t.Errorf("mutator is not a complexify")
-		}
-	})
-	t.Run("not enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{AddNodeProbability: 0.0, AddConnProbability: 0.0}
-		err := WithComplexify(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) > 0 {
-			t.Errorf("incorrect number of mutators: expected 0, actual: %d", len(e.Mutators))
-		}
-	})
-}
 
 func TestComplexify(t *testing.T) {
 
@@ -100,8 +64,8 @@ func TestComplexify(t *testing.T) {
 						{Position: evo.Position{Layer: 1.0, X: 1.0}, Neuron: evo.Output, Activation: evo.Sigmoid},
 					},
 					Conns: []evo.Conn{
-						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: false},
 						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 0.5, X: 0.5}, Weight: 1.0, Enabled: true},
+						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: false},
 						{Source: evo.Position{Layer: 0.5, X: 0.5}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 					},
 				},
@@ -118,8 +82,8 @@ func TestComplexify(t *testing.T) {
 						{Position: evo.Position{Layer: 1.0, X: 1.0}, Neuron: evo.Output, Activation: evo.Sigmoid},
 					},
 					Conns: []evo.Conn{
-						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 0.5, X: 0.5}, Weight: 3.0, Enabled: true},
+						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.5, X: 0.5}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 4.0, Enabled: true},
 					},
 				},
@@ -132,8 +96,8 @@ func TestComplexify(t *testing.T) {
 						{Position: evo.Position{Layer: 1.0, X: 1.0}, Neuron: evo.Output, Activation: evo.Sigmoid},
 					},
 					Conns: []evo.Conn{
-						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 0.5, X: 0.5}, Weight: 3.0, Enabled: true},
+						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.5, X: 0.5}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 4.0, Enabled: true},
 					},
 				},
@@ -150,8 +114,8 @@ func TestComplexify(t *testing.T) {
 						{Position: evo.Position{Layer: 1.0, X: 1.0}, Neuron: evo.Output, Activation: evo.Sigmoid},
 					},
 					Conns: []evo.Conn{
-						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 0.5, X: 0.5}, Weight: 3.0, Enabled: true},
+						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						// Missing hidden to output
 					},
 				},
@@ -164,8 +128,8 @@ func TestComplexify(t *testing.T) {
 						{Position: evo.Position{Layer: 1.0, X: 1.0}, Neuron: evo.Output, Activation: evo.Sigmoid},
 					},
 					Conns: []evo.Conn{
-						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 0.5, X: 0.5}, Weight: 3.0, Enabled: true},
+						{Source: evo.Position{Layer: 0.0, X: 0.0}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 2.0, Enabled: true},
 						{Source: evo.Position{Layer: 0.5, X: 0.5}, Target: evo.Position{Layer: 1.0, X: 1.0}, Weight: 4.0, Enabled: true},
 					},
 				},
@@ -185,7 +149,6 @@ func TestComplexify(t *testing.T) {
 
 			// Mutate the genome
 			err := mut.Mutate(&test.Original)
-			t.Logf("After: %+v\n", test.Original)
 
 			// There should be no error
 			if err != nil {
@@ -250,7 +213,6 @@ func testComplexifyConns(actual, expected []evo.Conn, checkWeight bool) func(*te
 
 		// There should be the same number of connections
 		if len(actual) != len(expected) {
-			t.Logf("actual %+v\n", actual)
 			t.Errorf("incorrect number of connections. expected %d, actual %d", len(expected), len(actual))
 			t.FailNow()
 		}
@@ -271,8 +233,6 @@ func testComplexifyConns(actual, expected []evo.Conn, checkWeight bool) func(*te
 						t.Errorf("incorrect weight. expected %f, actual %f", ec.Weight, ac.Weight)
 					}
 					if ac.Enabled != ec.Enabled {
-						t.Log("actual", actual)
-						t.Log("expected", expected)
 						t.Errorf("incorrect enabled. expected %v, actual %v", ec.Enabled, ac.Enabled)
 					}
 

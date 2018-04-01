@@ -1,14 +1,24 @@
 package neat
 
 import (
+	"sort"
+
 	"github.com/klokare/evo"
 )
 
-// Transcriber provides the nodes and connections to be used in network translation
-type Transcriber struct{}
+// Transcriber produces the decoded substrate
+type Transcriber struct {
+	DisableSortCheck bool
+}
 
-// Transcribe the genome into the nodes and connections used in network translation
+// Transcribe the encoded substrate into a decoded one
 func (t Transcriber) Transcribe(enc evo.Substrate) (dec evo.Substrate, err error) {
+
+	// Ensure the substrate is ordered properly
+	if !t.DisableSortCheck {
+		sort.Slice(enc.Nodes, func(i, j int) bool { return enc.Nodes[i].Compare(enc.Nodes[j]) < 0 })
+		sort.Slice(enc.Conns, func(i, j int) bool { return enc.Conns[i].Compare(enc.Conns[j]) < 0 })
+	}
 
 	// Copy the nodes
 	dec.Nodes = make([]evo.Node, len(enc.Nodes))
@@ -22,12 +32,4 @@ func (t Transcriber) Transcribe(enc evo.Substrate) (dec evo.Substrate, err error
 		}
 	}
 	return
-}
-
-// WithTranscriber sets the experiment's transcriber to a configured NEAT transcriber
-func WithTranscriber(evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		e.Transcriber = new(Transcriber)
-		return
-	}
 }

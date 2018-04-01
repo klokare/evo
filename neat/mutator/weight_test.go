@@ -6,43 +6,7 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/float"
-	"github.com/klokare/evo/internal/mock"
 )
-
-func TestWithWeight(t *testing.T) {
-	t.Run("error", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{HasError: true}
-		err := WithWeight(cfg)(e)
-		if err == nil {
-			t.Errorf("error expected")
-		}
-	})
-	t.Run("enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{MutateWeightProbability: 1.0}
-		err := WithWeight(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) == 0 {
-			t.Errorf("incorrect number of mutators: expected 1, actual 0")
-		} else if _, ok := e.Mutators[0].(*Weight); !ok {
-			t.Errorf("mutator is not a weight")
-		}
-	})
-	t.Run("not enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{MutateWeightProbability: 0.0}
-		err := WithWeight(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) > 0 {
-			t.Errorf("incorrect number of mutators: expected 0, actual: %d", len(e.Mutators))
-		}
-	})
-}
 
 func TestWeight(t *testing.T) {
 
@@ -117,8 +81,8 @@ func TestWeight(t *testing.T) {
 			}
 
 			// Compare against expected
-			m := float.Mean(weights...)
-			s := float.Stdev(weights...)
+			m := float.Mean(weights)
+			s := float.Stdev(weights)
 			if math.Abs(m-test.Mean) > 0.1 {
 				t.Errorf("incorrect mean weight. expected %f, actual %f", test.Mean, m)
 			}

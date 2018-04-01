@@ -25,9 +25,9 @@ type Phenome struct {
 
 // Result describes the outcome of running the evaluation. ID and fitness are required properties. If an error occurs in the evaluation, this should be returned with the result.
 type Result struct {
-	ID       int64         // The unique ID of the genome from which the phenome was made
-	Solved   bool          // True if the network provided a winning solution
-	Fitness  float64       // A positve value indicating the fitness of this network after evaluation
-	Novelty  float64       // An optional value indicating the novelty of this network's decisions during evaluation
-	Behavior []interface{} // An optional slice describing the novelty of the network's decisions
+	ID       int64       // The unique ID of the genome from which the phenome was made
+	Solved   bool        // True if the network provided a winning solution
+	Fitness  float64     // A positve value indicating the fitness of this network after evaluation
+	Novelty  float64     // An optional value indicating the novelty of this network's decisions during evaluation
+	Behavior interface{} // An optional slice describing the novelty of the network's decisions
 }

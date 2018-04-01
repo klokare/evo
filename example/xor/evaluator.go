@@ -35,17 +35,10 @@ func (e Evaluator) Evaluate(p evo.Phenome) (r evo.Result, err error) {
 		}
 	}
 	r = evo.Result{
-		ID:      p.ID,
-		Fitness: math.Pow(4.0-(out[0]+(1-out[1])+(1-out[2])+out[3]), 2.0),
-		Solved:  out[0] < 0.5 && out[1] > 0.5 && out[2] > 0.5 && out[3] < 0.5,
+		ID:       p.ID,
+		Fitness:  math.Pow(4.0-(out[0]+(1-out[1])+(1-out[2])+out[3]), 2.0),
+		Solved:   out[0] < 0.5 && out[1] > 0.5 && out[2] > 0.5 && out[3] < 0.5,
+		Behavior: out,
 	}
 	return
-}
-
-// WithEvaluator configures the experiment with the XOR evaluator
-func WithEvaluator() evo.Option {
-	return func(e *evo.Experiment) error {
-		e.Evaluator = Evaluator{}
-		return nil
-	}
 }

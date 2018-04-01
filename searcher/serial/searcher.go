@@ -17,11 +17,3 @@ func (s Searcher) Search(eval evo.Evaluator, phenomes []evo.Phenome) (results []
 	}
 	return
 }
-
-// WithSearcher sets the experiment's transcriber to a configured serial searcher
-func WithSearcher() evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		e.Searcher = new(Searcher)
-		return
-	}
-}

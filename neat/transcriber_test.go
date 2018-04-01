@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/klokare/evo"
-	"github.com/klokare/evo/internal/test"
+	"github.com/klokare/evo/internal/mock"
 )
 
 func TestTranscriber(t *testing.T) {
@@ -151,13 +151,13 @@ func TestTranscriber(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 
 			// Create a new transcriber
-			z := new(Transcriber)
+			z := &Transcriber{}
 
-			// Transcribe the genome
+			// Transcribe the encoded substrate
 			dec, err := z.Transcribe(c.Encoded)
 
 			// There should be no error
-			t.Run("error", test.Error(c.HasError, err))
+			t.Run("error", mock.Error(c.HasError, err))
 			if c.HasError {
 				return
 			}
@@ -167,7 +167,6 @@ func TestTranscriber(t *testing.T) {
 
 			// Only the expected conns should be present
 			t.Run("Conns", testTranscribeConns(dec.Conns, c.Decoded.Conns))
-
 		})
 	}
 }
@@ -250,16 +249,5 @@ func testTranscribeConns(actual, expected []evo.Conn) func(*testing.T) {
 				}
 			}
 		}
-	}
-}
-
-func TestWithTranscriber(t *testing.T) {
-	e := new(evo.Experiment)
-	err := WithTranscriber(nil)(e)
-	if err != nil {
-		t.Errorf("error was not expected: %v", err)
-	}
-	if _, ok := e.Transcriber.(*Transcriber); !ok {
-		t.Errorf("transcriber incorrectly set")
 	}
 }

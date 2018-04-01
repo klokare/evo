@@ -5,7 +5,6 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/mock"
-	"github.com/klokare/evo/internal/test"
 )
 
 func TestSelectorSelect(t *testing.T) {
@@ -141,7 +140,7 @@ func TestSelectorSelect(t *testing.T) {
 
 			// Create the selector
 			s := &Selector{
-				Compare:        evo.ByFitness,
+				Comparison:     evo.ByFitness,
 				PopulationSize: len(c.Population.Genomes),
 			}
 
@@ -149,7 +148,7 @@ func TestSelectorSelect(t *testing.T) {
 			acs, aps, err := s.Select(c.Population)
 
 			// Check error
-			if !t.Run("error", test.Error(c.HasError, err)) || c.HasError {
+			if !t.Run("error", mock.Error(c.HasError, err)) || c.HasError {
 				return
 			}
 
@@ -295,7 +294,7 @@ func TestSelectorMutateOnly(t *testing.T) {
 	// Create the selector
 	// Create the selector
 	s := &Selector{
-		Compare:               evo.ByFitness,
+		Comparison:            evo.ByFitness,
 		PopulationSize:        len(pop.Genomes),
 		MutateOnlyProbability: 1.0,
 	}
@@ -304,7 +303,7 @@ func TestSelectorMutateOnly(t *testing.T) {
 	_, aps, err := s.Select(pop)
 
 	// Check error
-	if !t.Run("error", test.Error(false, err)) {
+	if !t.Run("error", mock.Error(false, err)) {
 		return
 	}
 
@@ -340,7 +339,7 @@ func TestSelectorInterspecies(t *testing.T) {
 	// Create the selector
 	// Create the selector
 	s := &Selector{
-		Compare:                     evo.ByFitness,
+		Comparison:                  evo.ByFitness,
 		PopulationSize:              len(pop.Genomes),
 		InterspeciesMateProbability: 1.0,
 	}
@@ -349,7 +348,7 @@ func TestSelectorInterspecies(t *testing.T) {
 	_, aps, err := s.Select(pop)
 
 	// Check error
-	if !t.Run("error", test.Error(false, err)) {
+	if !t.Run("error", mock.Error(false, err)) {
 		return
 	}
 
@@ -358,33 +357,6 @@ func TestSelectorInterspecies(t *testing.T) {
 		if ps[0].SpeciesID == ps[1].SpeciesID {
 			t.Errorf("expected parents to be of different species in group %d", i)
 		}
-	}
-}
-
-func TestWithSelector(t *testing.T) {
-	e := new(evo.Experiment)
-
-	// Experiment has no Comparer
-	err := WithSelector(&mock.Configurer{})(e)
-	if err == nil {
-		t.Errorf("error expected but not found")
-	}
-
-	// Experiment has Comparer
-	e.Compare = evo.ByFitness
-	err = WithSelector(&mock.Configurer{})(e)
-	if err != nil {
-		t.Errorf("error not expected but had: %v", err)
-	}
-	if _, ok := e.Selector.(*Selector); !ok {
-		t.Errorf("selector incorrectly set")
-	}
-
-	// Configurer has error
-	e.Compare = evo.ByFitness
-	err = WithSelector(&mock.Configurer{HasError: true})(e)
-	if err == nil {
-		t.Errorf("error expected but not found")
 	}
 }
 
@@ -426,13 +398,13 @@ func TestSelectorStagnant(t *testing.T) {
 
 	// Select
 	s := &Selector{
-		Compare:        evo.ByFitness,
+		Comparison:     evo.ByFitness,
 		PopulationSize: len(p.Genomes),
 	}
 	cs, ps, err := s.Select(p)
 
 	// Test for error
-	t.Run("error", test.Error(false, err))
+	t.Run("error", mock.Error(false, err))
 
 	// Test for continuing
 	if len(cs) != 1 {

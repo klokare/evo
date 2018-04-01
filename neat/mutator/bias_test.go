@@ -6,43 +6,7 @@ import (
 
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/internal/float"
-	"github.com/klokare/evo/internal/mock"
 )
-
-func TestWithBias(t *testing.T) {
-	t.Run("error", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{HasError: true}
-		err := WithBias(cfg)(e)
-		if err == nil {
-			t.Errorf("error expected")
-		}
-	})
-	t.Run("enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{MutateBiasProbability: 1.0}
-		err := WithBias(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) == 0 {
-			t.Errorf("incorrect number of mutators: expected 1, actual 0")
-		} else if _, ok := e.Mutators[0].(*Bias); !ok {
-			t.Errorf("mutator is not a bias")
-		}
-	})
-	t.Run("not enabled", func(t *testing.T) {
-		e := &evo.Experiment{Mutators: make([]evo.Mutator, 0, 1)}
-		cfg := &mock.Configurer{MutateBiasProbability: 0.0}
-		err := WithBias(cfg)(e)
-		if err != nil {
-			t.Errorf("error unxpected: %v", err)
-		}
-		if len(e.Mutators) > 0 {
-			t.Errorf("incorrect number of mutators: expected 0, actual: %d", len(e.Mutators))
-		}
-	})
-}
 
 func TestBias(t *testing.T) {
 
@@ -123,8 +87,8 @@ func TestBias(t *testing.T) {
 			}
 
 			// Compare against expected
-			m := float.Mean(biases...)
-			s := float.Stdev(biases...)
+			m := float.Mean(biases)
+			s := float.Stdev(biases)
 			if math.Abs(m-test.Mean) > 0.1 {
 				t.Errorf("incorrect mean bias. expected %f, actual %f", test.Mean, m)
 			}

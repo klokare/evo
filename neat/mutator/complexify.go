@@ -11,17 +11,21 @@ type Complexify struct {
 	AddNodeProbability float64
 	AddConnProbability float64
 	WeightPower        float64
+	MaxWeight          float64
+	BiasPower          float64
+	MaxBias            float64
 	HiddenActivation   evo.Activation
+	DisableSortCheck   bool
 }
 
 // Mutate a genome by adding nodes or connections
 func (m Complexify) Mutate(g *evo.Genome) (err error) {
 	rng := evo.NewRandom()
 	if rng.Float64() < m.AddNodeProbability {
-		return m.addNode(rng, m.HiddenActivation, &g.Encoded)
+		return m.addNode(rng, &g.Encoded, !m.DisableSortCheck)
 	}
 	if rng.Float64() < m.AddConnProbability {
-		return m.addConn(rng, m.WeightPower, &g.Encoded)
+		return m.addConn(rng, &g.Encoded, !m.DisableSortCheck)
 	}
 	return
 }
@@ -35,11 +39,13 @@ func (m Complexify) Mutate(g *evo.Genome) (err error) {
 //
 // NOTE: Stanley's version does not use a bias property in nodes. Setting that property to zero is
 // the equivalent.
-func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substrate) (err error) {
+func (m Complexify) addNode(rng evo.Random, sub *evo.Substrate, check bool) (err error) {
 
 	// Improve search speed
-	sort.Slice(sub.Nodes, func(i, j int) bool { return sub.Nodes[i].Compare(sub.Nodes[j]) < 0 })
-	sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+	if check {
+		sort.Slice(sub.Nodes, func(i, j int) bool { return sub.Nodes[i].Compare(sub.Nodes[j]) < 0 })
+		sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+	}
 
 	// Iterate connections randomly
 	idxs := rng.Perm(len(sub.Conns))
@@ -47,18 +53,26 @@ func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substra
 
 		// Identify the connection
 		c0 := &sub.Conns[idx]
+		if c0.Locked {
+			continue // do not split a locked connection
+		}
 
 		// Create the new node
 		n := evo.Node{
 			Position:   evo.Midpoint(c0.Source, c0.Target),
 			Neuron:     evo.Hidden,
-			Activation: act,
-			Bias:       0.0,
+			Activation: m.HiddenActivation,
+			Bias:       rng.NormFloat64() * m.BiasPower,
+		}
+		if n.Bias > m.MaxBias {
+			n.Bias = m.MaxBias
+		} else if n.Bias < -m.MaxBias {
+			n.Bias = -m.MaxBias
 		}
 
 		// Look for an existing node
 		i := sort.Search(len(sub.Nodes), func(i int) bool { return sub.Nodes[i].Compare(n) >= 0 })
-		if idx < len(sub.Nodes) && sub.Nodes[i].Compare(n) == 0 {
+		if i < len(sub.Nodes) && sub.Nodes[i].Compare(n) == 0 {
 			continue
 		}
 		sub.Nodes = append(sub.Nodes, n)
@@ -70,6 +84,10 @@ func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substra
 
 		// Disable the original connection
 		sub.Conns[idx].Enabled = false
+
+		// Ensure the order of the substrate
+		sort.Slice(sub.Nodes, func(i, j int) bool { return sub.Nodes[i].Compare(sub.Nodes[j]) < 0 })
+		sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
 		return
 	}
 	return
@@ -79,10 +97,12 @@ func (m Complexify) addNode(rng evo.Random, act evo.Activation, sub *evo.Substra
 //
 // In the add connection mutation, a single new connection gene with a random weight is added
 // connecting two previously unconnected nodes (Stanley, 107).
-func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err error) {
+func (m Complexify) addConn(rng evo.Random, sub *evo.Substrate, check bool) (err error) {
 
 	// Improve search speed
-	sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+	if check {
+		sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
+	}
 
 	// Randomise node order
 	sidxs := rng.Perm(len(sub.Nodes))
@@ -110,8 +130,13 @@ func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err
 			c := evo.Conn{
 				Source:  src.Position,
 				Target:  tgt.Position,
-				Weight:  rng.NormFloat64() * wp,
+				Weight:  rng.NormFloat64() * m.WeightPower,
 				Enabled: true,
+			}
+			if c.Weight > m.MaxWeight {
+				c.Weight = m.MaxWeight
+			} else if c.Weight < -m.MaxWeight {
+				c.Weight = -m.MaxWeight
 			}
 
 			// Nodes must be previously unconnected
@@ -122,26 +147,9 @@ func (m Complexify) addConn(rng evo.Random, wp float64, sub *evo.Substrate) (err
 
 			// Append the connection
 			sub.Conns = append(sub.Conns, c)
+			sort.Slice(sub.Conns, func(i, j int) bool { return sub.Conns[i].Compare(sub.Conns[j]) < 0 })
 			return
 		}
 	}
 	return
-}
-
-// WithComplexify adds a configured complexify mutator to the experiment
-func WithComplexify(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		z := new(Complexify)
-		if err = cfg.Configure(z); err != nil {
-			return
-		}
-
-		// Do not continue if there is no chance for mutation
-		if z.AddNodeProbability == 0.0 && z.AddConnProbability == 0.0 {
-			return
-		}
-
-		e.Mutators = append(e.Mutators, z)
-		return
-	}
 }

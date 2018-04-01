@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/klokare/evo"
-	"github.com/klokare/evo/internal/test"
+	"github.com/klokare/evo/internal/mock"
 )
 
 func TestComplexityDistance(t *testing.T) {
@@ -358,7 +358,7 @@ func TestComplexityDistance(t *testing.T) {
 			dist, err := cmp.Distance(c.A, c.B)
 
 			// Check if error was expected
-			if t.Run("Error", test.Error(c.IsError, err)) == false {
+			if t.Run("Error", mock.Error(c.IsError, err)) == false {
 				t.Fail()
 			}
 			if err != nil {

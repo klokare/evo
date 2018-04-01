@@ -1,0 +1,32 @@
+{
+	"disable-sort-check": false,
+	"neat": {
+		"comparison":                    "fitness",
+		"num-inputs":                    2,
+		"num-outputs":                   1,
+		"hidden-activation":             "steepened-sigmoid",
+		"output-activation":             "steepened-sigmoid",
+		"population-size":               150,
+		"weight-power":                  2.5,
+		"max-weight":                    8.0,
+		"bias-power":                    2.5,
+		"max-bias":                      8.0,
+		"mutate-only-probability":       0.25,
+		"interspecies-mate-probability": 0.001,
+		"elitism":                       0.01,
+		"survival-rate":                 0.2,
+		"enable-probability":            0.25,
+		"conns-coefficient":             1.0,
+		"weight-coefficient":            0.4,
+		"compatibility-threshold":       3.0,
+		"compatibility-modifier":        0.3,
+		"target-species":                15,
+		"species-decay-rate":            0.06667,
+		"add-node-probability":          0.03,
+		"add-conn-probability":          0.05,
+		"mutate-weight-probability":     0.8,
+		"replace-weight-probability":    0.1,
+		"mutate-bias-probability":       0.8,
+		"replace-bias-probability":      0.1
+	}
+}

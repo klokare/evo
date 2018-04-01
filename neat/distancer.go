@@ -14,6 +14,7 @@ type Distancer interface {
 
 // Compatibility distance measurer using the methods described by Stanley
 type Compatibility struct {
+	DisableSortCheck      bool
 	NodesCoefficient      float64
 	BiasCoefficient       float64
 	ActivationCoefficient float64
@@ -25,21 +26,23 @@ type Compatibility struct {
 func (c Compatibility) Distance(a, b evo.Genome) (d float64, err error) {
 
 	// Calculate the number of disjoint/excess nodes
-	n, f, g := nodeDistance(a.Encoded.Nodes, b.Encoded.Nodes)
+	n, f, g := nodeDistance(a.Encoded.Nodes, b.Encoded.Nodes, !c.DisableSortCheck)
 
 	// Calculate the number of disjoint/excess conns as well as the average difference in weight maggnitude
-	s, w := connDistance(a.Encoded.Conns, b.Encoded.Conns)
+	s, w := connDistance(a.Encoded.Conns, b.Encoded.Conns, !c.DisableSortCheck)
 
 	// Return the compatibility distance
 	d = n*c.NodesCoefficient + f*c.ActivationCoefficient + g*c.BiasCoefficient + s*c.ConnsCoefficient + w*c.WeightCoefficient
 	return
 }
 
-func nodeDistance(nodes1, nodes2 []evo.Node) (c, a, b float64) {
+func nodeDistance(nodes1, nodes2 []evo.Node, check bool) (c, a, b float64) {
 
 	// Sort the nodes
-	sort.Slice(nodes1, func(i, j int) bool { return nodes1[i].Compare(nodes1[j]) < 0 })
-	sort.Slice(nodes2, func(i, j int) bool { return nodes2[i].Compare(nodes2[j]) < 0 })
+	if check {
+		sort.Slice(nodes1, func(i, j int) bool { return nodes1[i].Compare(nodes1[j]) < 0 })
+		sort.Slice(nodes2, func(i, j int) bool { return nodes2[i].Compare(nodes2[j]) < 0 })
+	}
 
 	// Iterate the nodes and look for differences
 	var i, j int
@@ -72,11 +75,13 @@ func nodeDistance(nodes1, nodes2 []evo.Node) (c, a, b float64) {
 	return
 }
 
-func connDistance(conns1, conns2 []evo.Conn) (c float64, w float64) {
+func connDistance(conns1, conns2 []evo.Conn, check bool) (c float64, w float64) {
 
 	// Sort the connections
-	sort.Slice(conns1, func(i, j int) bool { return conns1[i].Compare(conns1[j]) < 0 })
-	sort.Slice(conns2, func(i, j int) bool { return conns2[i].Compare(conns2[j]) < 0 })
+	if check {
+		sort.Slice(conns1, func(i, j int) bool { return conns1[i].Compare(conns1[j]) < 0 })
+		sort.Slice(conns2, func(i, j int) bool { return conns2[i].Compare(conns2[j]) < 0 })
+	}
 
 	// Iterate the connections and look for differences
 	var i, j int

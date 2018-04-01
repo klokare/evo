@@ -2,6 +2,7 @@ package evo
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -123,4 +124,37 @@ func TestActivation(t *testing.T) {
 		act := Activation(0)
 		_ = act.Activate(-1)
 	}()
+}
+
+var dummy64 float64
+
+func BenchmarkActivationMethod(b *testing.B) {
+
+	a := make([]Activation, 8)
+	f := make([]func(float64) float64, 8)
+
+	idxs := rand.Perm(8)
+	for _, i := range idxs {
+		a[i] = Activation(i + 1)
+		f[i] = a[i].Activate
+	}
+	b.ResetTimer()
+
+	b.Run("activation", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < len(a); j++ {
+				dummy64 = a[j].Activate(0.6)
+				dummy64 = a[j].Activate(-0.6)
+			}
+		}
+	})
+
+	b.Run("function", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < len(a); j++ {
+				dummy64 = f[j](0.6)
+				dummy64 = f[j](-0.6)
+			}
+		}
+	})
 }

@@ -15,8 +15,10 @@ var (
 
 // Crosser combines 1 or more parents to create an offspring genome.
 type Crosser struct {
-	EnableProbability float64
-	evo.Compare
+	EnableProbability       float64
+	DisableEqualParentCheck bool
+	DisableSortCheck        bool
+	evo.Comparison
 }
 
 // Cross the parents and create a new offspring, using the sequence to assign a new ID. There is a
@@ -56,13 +58,13 @@ func (z *Crosser) Cross(parents ...evo.Genome) (child evo.Genome, err error) {
 		if z.Compare(p1, p2) < 0 {
 			p1, p2 = p2, p1
 		}
-		same := p1.Fitness == p2.Fitness
+		same := p1.Fitness == p2.Fitness && !z.DisableEqualParentCheck
 
 		// Create the child
 		child = evo.Genome{
 			Encoded: evo.Substrate{
-				Nodes: crossNodes(rng, p1.Encoded.Nodes, p2.Encoded.Nodes, same),
-				Conns: crossConns(rng, p1.Encoded.Conns, p2.Encoded.Conns, same),
+				Nodes: crossNodes(rng, p1.Encoded.Nodes, p2.Encoded.Nodes, same, !z.DisableSortCheck),
+				Conns: crossConns(rng, p1.Encoded.Conns, p2.Encoded.Conns, same, !z.DisableSortCheck),
 			},
 			Traits: crossTraits(rng, p1.Traits, p2.Traits),
 		}
@@ -71,18 +73,32 @@ func (z *Crosser) Cross(parents ...evo.Genome) (child evo.Genome, err error) {
 	// Possibly re-enable disabled connections
 	for i, c := range child.Encoded.Conns {
 		if !c.Enabled {
-			x := (rng.Float64() < z.EnableProbability)
-			child.Encoded.Conns[i].Enabled = x
+			if rng.Float64() < z.EnableProbability {
+				child.Encoded.Conns[i].Enabled = true
+			}
 		}
 	}
+
+	// Ensure substrate is sorted
+	sort.Slice(child.Encoded.Nodes, func(i, j int) bool { return child.Encoded.Nodes[i].Compare(child.Encoded.Nodes[j]) < 0 })
+	sort.Slice(child.Encoded.Conns, func(i, j int) bool { return child.Encoded.Conns[i].Compare(child.Encoded.Conns[j]) < 0 })
 	return
 }
 
-func crossNodes(rng evo.Random, nodes1, nodes2 []evo.Node, same bool) (nodes []evo.Node) {
+func crossNodes(rng evo.Random, nodes1, nodes2 []evo.Node, same, check bool) (nodes []evo.Node) {
 
 	// Sort the nodes
-	sort.Slice(nodes1, func(i, j int) bool { return nodes1[i].Compare(nodes1[j]) < 0 })
-	sort.Slice(nodes2, func(i, j int) bool { return nodes2[i].Compare(nodes2[j]) < 0 })
+	if check {
+		tmp := make([]evo.Node, len(nodes1)) // work with a copy to be safe for concurrency
+		copy(tmp, nodes1)
+		sort.Slice(tmp, func(i, j int) bool { return tmp[i].Compare(tmp[j]) < 0 })
+		nodes1 = tmp
+
+		tmp = make([]evo.Node, len(nodes2)) // work with a copy to be safe for concurrency
+		copy(tmp, nodes2)
+		sort.Slice(tmp, func(i, j int) bool { return tmp[i].Compare(tmp[j]) < 0 })
+		nodes2 = tmp
+	}
 
 	// Iterate the nodes and look for differences
 	var i, j int
@@ -121,11 +137,20 @@ func crossNodes(rng evo.Random, nodes1, nodes2 []evo.Node, same bool) (nodes []e
 	return
 }
 
-func crossConns(rng evo.Random, conns1, conns2 []evo.Conn, same bool) (conns []evo.Conn) {
+func crossConns(rng evo.Random, conns1, conns2 []evo.Conn, same, check bool) (conns []evo.Conn) {
 
 	// Sort the connections
-	sort.Slice(conns1, func(i, j int) bool { return conns1[i].Compare(conns1[j]) < 0 })
-	sort.Slice(conns2, func(i, j int) bool { return conns2[i].Compare(conns2[j]) < 0 })
+	if check {
+		tmp := make([]evo.Conn, len(conns1)) // work with a copy to be safe for concurrency
+		copy(tmp, conns1)
+		sort.Slice(tmp, func(i, j int) bool { return tmp[i].Compare(tmp[j]) < 0 })
+		conns1 = tmp
+
+		tmp = make([]evo.Conn, len(conns2)) // work with a copy to be safe for concurrency
+		copy(tmp, conns2)
+		sort.Slice(tmp, func(i, j int) bool { return tmp[i].Compare(tmp[j]) < 0 })
+		conns2 = tmp
+	}
 
 	// Iterate the connections and look for differences
 	var i, j int
@@ -176,21 +201,4 @@ func crossTraits(rng evo.Random, traits1, traits2 []float64) (traits []float64) 
 		}
 	}
 	return
-}
-
-// WithCrosser sets the experiment's crosser to a configured NEAT crosser
-func WithCrosser(cfg evo.Configurer) evo.Option {
-	return func(e *evo.Experiment) (err error) {
-		z := new(Crosser)
-		if err = cfg.Configure(z); err != nil {
-			return
-		}
-		if e.Compare == nil {
-			err = errors.New("experiment should have compare function set before adding NEAT crosser")
-			return
-		}
-		z.Compare = e.Compare
-		e.Crosser = z
-		return
-	}
 }
