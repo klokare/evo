@@ -3,11 +3,7 @@ package forward
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"sort"
-	"sync/atomic"
-	"time"
 
 	"github.com/klokare/evo"
 	"gonum.org/v1/gonum/mat"
@@ -24,33 +20,10 @@ type Translator struct {
 	DisableSortCheck bool
 }
 
-var tmpid *int64 = new(int64)
+var tmpid = new(int64)
 
 // Translate the substrate into a network
 func (t Translator) Translate(sub evo.Substrate) (net evo.Network, err error) {
-
-	defer func() {
-		msg := recover()
-		if msg != nil {
-			log.Println("PANIC", msg)
-			var f *os.File
-			if f, err = os.Create(fmt.Sprintf("/tmp/panic-translate-%d.txt", atomic.AddInt64(tmpid, 1))); err != nil {
-				panic(err)
-			}
-			defer f.Close()
-			fmt.Fprintln(f, msg)
-			fmt.Fprintln(f)
-
-			for _, n := range sub.Nodes {
-				fmt.Fprintln(f, n)
-			}
-			for _, c := range sub.Conns {
-				fmt.Fprintln(f, c)
-			}
-			f.Close()
-			time.Sleep(time.Second * 2)
-		}
-	}()
 
 	// Sort the substrate to ensure proper ordering during translation
 	nodes := make([]evo.Node, len(sub.Nodes))
@@ -113,6 +86,7 @@ func (t Translator) Translate(sub evo.Substrate) (net evo.Network, err error) {
 		// Transfer the activations
 		layers[i] = lay
 	}
+
 	// Order the connections by target layer then compare
 	sort.Slice(conns, func(i, j int) bool {
 		a := conns[i]
@@ -147,13 +121,7 @@ func (t Translator) Translate(sub evo.Substrate) (net evo.Network, err error) {
 		if n2l[tl][0].Layer != conn.Target.Layer {
 
 			// Find the source layer
-			if tl == len(n2l) {
-				log.Println("bad a", "tl", tl, "n2l", n2l)
-			}
 			for n2l[tl][0].Layer != conn.Target.Layer {
-				if tl == len(n2l) {
-					log.Println("bad b", "tl", tl, "n2l", n2l)
-				}
 				tl++
 			}
 			tlay = n2l[tl]
@@ -186,9 +154,6 @@ func (t Translator) Translate(sub evo.Substrate) (net evo.Network, err error) {
 		// Advance to the source node
 		for slay[sn].Position.Compare(conn.Source) < 0 {
 			sn++
-			if sn == len(slay) {
-				log.Println("bad", "sn", sn, "slay", slay)
-			}
 			tn = 0
 		}
 

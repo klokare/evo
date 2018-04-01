@@ -29,6 +29,13 @@ type flexMatrix interface {
 // Activate activates the network using the incoming matrix of values
 func (net Network) Activate(inputs evo.Matrix) (outputs evo.Matrix, err error) {
 
+	// defer func() {
+	// 	if msg := recover(); msg != nil {
+	// 		showNetwork("failed", net)
+	// 		os.Exit(1)
+	// 	}
+	// }()
+
 	// Prebuild the values with bias values
 	values := make([]flexMatrix, len(net.Layers))
 	n, _ := inputs.Dims()
