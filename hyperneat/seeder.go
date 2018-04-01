@@ -1,6 +1,8 @@
 package hyperneat
 
 import (
+	"sort"
+
 	"github.com/klokare/evo"
 	"github.com/klokare/evo/neat"
 )
@@ -94,6 +96,10 @@ func (s Seeder) Seed() (g evo.Genome, err error) {
 			},
 		)
 	}
+
+	// Ensure sorted substrate and return
+	sort.Slice(enc.Nodes, func(i, j int) bool { return enc.Nodes[i].Compare(enc.Nodes[j]) < 0 })
+	sort.Slice(enc.Conns, func(i, j int) bool { return enc.Conns[i].Compare(enc.Conns[j]) < 0 })
 	g.Encoded = enc
 	return
 }
