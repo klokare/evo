@@ -39,7 +39,7 @@ func TestDoWithError(t *testing.T) {
 		hasError bool
 	}
 
-	tasks := make([]Task, runtime.NumCPU()*2) // so some have to wait
+	tasks := make([]Task, 100) // so some have to wait
 	for i := 0; i < len(tasks); i++ {
 		tasks[i] = &task{hasError: i == 1}
 	}

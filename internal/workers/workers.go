@@ -42,6 +42,7 @@ func Do(tasks []Task, action func(Task) error) (err error) {
 					}
 					if err := action(t); err != nil {
 						ec <- err
+						return
 					}
 				case <-done:
 					return
