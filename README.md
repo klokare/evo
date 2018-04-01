@@ -13,6 +13,14 @@ To start using EVO, install Go and run `go get`:
 $ go get github.com/klokare/evo/...
 ```
 
+### Mercurial requirement
+The library relies on packages from [gonum](https://github.com/gonum) which have their own dependencies. Some of those, like [gopdf](bitbucket.org/zombiezen/gopdf), require the use of [Mercurial](https://www.mercurial-scm.org) for the above `go get` command to work. If you see the following error, [install](https://www.mercurial-scm.org/downloads) Mercurial and then reissue the `go get` command.
+```bash
+$ go get github.com/klokare/evo/...
+go: missing Mercurial command. See https://golang.org/s/gogetcmd
+...
+```
+
 For further information on using, see the examples and peruse [the wiki](https://github.com/klokare/evo/wiki).
 
 ## Version history and upcoming releases
