@@ -33,19 +33,19 @@ var (
 		"name1|bool-b2":       1,       // can use 0 = false; nonzero = true, too
 		"name2|name3|bool-c1": "false", // value may come in as string
 		"name2|name3|bool-c2": "true",  // value may come in as string
-		"bool-bad":            1.1,
+		"bool-bad":            "foo",
 
 		// activation
 		"activation-a":             1,
 		"name1|activation-b":       "sigmoid", // value may come in a string
 		"name2|name3|activation-c": 3,
-		"activation-bad":           1.1,
+		"activation-bad":           "foo",
 
 		// compare -- only available as string
 		"compare-a":             1,
 		"name1|compare-b":       "age", // value may come in a string
 		"name2|name3|compare-c": "novelty",
-		"compare-bad":           1.1,
+		"compare-bad":           "foo",
 
 		// ints
 		"ints-a":             []int{1, 2},
@@ -365,7 +365,7 @@ func TestBool(t *testing.T) {
 			Expected: false,
 		},
 		{
-			Desc:     "not an bool",
+			Desc:     "not a bool",
 			Key:      "bool-bad",
 			Expected: false,
 		},
@@ -635,7 +635,7 @@ func TestActivation(t *testing.T) {
 			Expected: 0,
 		},
 		{
-			Desc:     "not a string",
+			Desc:     "not an activation",
 			Key:      "activation-bad",
 			Expected: 0,
 		},
@@ -767,7 +767,7 @@ func TestComparison(t *testing.T) {
 			Expected: 0,
 		},
 		{
-			Desc:     "not a string",
+			Desc:     "not a comparison",
 			Key:      "compare-bad",
 			Expected: 0,
 		},
