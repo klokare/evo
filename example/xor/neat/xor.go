@@ -57,7 +57,7 @@ func main() {
 		// Create the experiment
 		exp := neat.NewExperiment(cfg)
 
-		// Add addtional subscriptions
+		// Add additional subscriptions
 		if s == nil {
 			exp.AddSubscription(evo.Subscription{Event: evo.Completed, Callback: example.ShowBest}) // Show summary upon completion
 		} else {

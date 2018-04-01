@@ -53,7 +53,7 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 		DisableSortCheck: cfg.Bool("hyperneat|transcriber|disable-sort-check"),
 	}
 
-	// Add addtional mutator for activations
+	// Add additional mutator for activations
 	am := mutator.Activation{
 		ReplaceActivationProbability: cfg.Float64("neat|mutator|activation|replace-activation-probability"),
 		Activations:                  cfg.Activations("neat|mutator|activation|mutate-activations"),

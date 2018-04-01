@@ -132,7 +132,7 @@ func TestSpeciatorSpeciate(t *testing.T) {
 				},
 				Species: []evo.Species{
 					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same stucture so assignment should go to 10 unless previously assigned
+					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same structure so assignment should go to 10 unless previously assigned
 				},
 			},
 			Expected: evo.Population{
@@ -142,7 +142,7 @@ func TestSpeciatorSpeciate(t *testing.T) {
 				},
 				Species: []evo.Species{
 					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same stucture so assignment should go to 10 unless previously assigned
+					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same structure so assignment should go to 10 unless previously assigned
 				},
 			},
 		},

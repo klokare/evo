@@ -108,7 +108,7 @@ func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 		}
 	}
 
-	// Adjust the compatibile threshold
+	// Adjust the compatible threshold
 	if len(a) > s.TargetSpecies {
 		s.CompatibilityThreshold += s.CompatibilityModifier
 	} else if s.CompatibilityThreshold > s.CompatibilityModifier && len(a) < s.TargetSpecies {

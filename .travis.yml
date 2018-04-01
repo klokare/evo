@@ -1,4 +1,13 @@
 language: go
 
 go:
-  - "1.10.x"
+ - 1.8.x
+ - 1.9.x
+ - 1.10.x
+ - master
+
+
+before_install:
+  - go get github.com/mattn/goveralls
+script:
+  - $HOME/gopath/bin/goveralls -v -service=travis-ci

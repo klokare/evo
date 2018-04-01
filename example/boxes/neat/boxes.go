@@ -63,7 +63,7 @@ func main() {
 		// Create the evaluator
 		eval := boxes.NewEvaluator(cfg.Int("boxes|resolution"))
 
-		// Add addtional subscriptions
+		// Add additional subscriptions
 		if s == nil {
 			exp.AddSubscription(evo.Subscription{Event: evo.Completed, Callback: example.ShowBest})                         // Show summary upon completion
 			exp.AddSubscription(evo.Subscription{Event: evo.Completed, Callback: writeImage(*ipath, exp.Translator, eval)}) // Write output image

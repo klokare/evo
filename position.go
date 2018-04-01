@@ -62,7 +62,7 @@ func Midpoint(positions ...Position) (m Position) {
 		Layer: l / n,
 		X:     x / n,
 		Y:     y / n,
-		Z:     y / n,
+		Z:     z / n,
 	}
 	return
 }

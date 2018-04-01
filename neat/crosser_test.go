@@ -27,7 +27,7 @@ func TestCrosserParentErrors(t *testing.T) {
 }
 
 // Test the crossing of 1 and 2 parents. Errors and enabling disabled connections are tested above.
-// Testing probability of inheritence is tested below.
+// Testing probability of inheritance is tested below.
 func TestCrosser(t *testing.T) {
 
 	// Though nonsensical in practice, using weight and bias values to track lineage

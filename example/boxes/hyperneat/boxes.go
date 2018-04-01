@@ -67,7 +67,7 @@ func main() {
 		// Initialise the template
 		exp.Transcriber.SetTemplate(boxes.Template(cfg.Int("boxes|resolution"), *hidden))
 
-		// Add addtional subscriptions
+		// Add additional subscriptions
 		if s == nil {
 			exp.AddSubscription(evo.Subscription{Event: evo.Completed, Callback: example.ShowBest})                         // Show summary upon completion
 			exp.AddSubscription(evo.Subscription{Event: evo.Completed, Callback: writeImage(*ipath, exp.Translator, eval)}) // Write output image

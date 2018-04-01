@@ -34,7 +34,7 @@ func TestByFitness(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 			x := ByFitness.Compare(c.A, c.B)
 			if x != c.Expected {
-				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+				t.Errorf("incorrect comparison result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}
@@ -70,7 +70,7 @@ func TestByNovelty(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 			x := ByNovelty.Compare(c.A, c.B)
 			if x != c.Expected {
-				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+				t.Errorf("incorrect comparison result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}
@@ -106,7 +106,7 @@ func TestByAge(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 			x := ByAge.Compare(c.A, c.B)
 			if x != c.Expected {
-				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+				t.Errorf("incorrect comparison result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}
@@ -142,7 +142,7 @@ func TestByComplexity(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 			x := ByComplexity.Compare(c.A, c.B)
 			if x != c.Expected {
-				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+				t.Errorf("incorrect comparison result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}
@@ -184,7 +184,7 @@ func TestBySolved(t *testing.T) {
 		t.Run(c.Desc, func(t *testing.T) {
 			x := BySolved.Compare(c.A, c.B)
 			if x != c.Expected {
-				t.Errorf("incorrect comparision result: expected %d, actual %d", c.Expected, x)
+				t.Errorf("incorrect comparison result: expected %d, actual %d", c.Expected, x)
 			}
 		})
 	}

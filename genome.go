@@ -27,7 +27,7 @@ type Phenome struct {
 type Result struct {
 	ID       int64       // The unique ID of the genome from which the phenome was made
 	Solved   bool        // True if the network provided a winning solution
-	Fitness  float64     // A positve value indicating the fitness of this network after evaluation
+	Fitness  float64     // A positive value indicating the fitness of this network after evaluation
 	Novelty  float64     // An optional value indicating the novelty of this network's decisions during evaluation
 	Behavior interface{} // An optional slice describing the novelty of the network's decisions
 }
