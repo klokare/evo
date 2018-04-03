@@ -30,8 +30,8 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 	exp.Experiment = *neat.NewExperiment(cfg) // backfill with the NEAT helpers
 	exp.Experiment.Populator = neat.Populator{
 		Seeder: Seeder{
-			NumTraits:         cfg.Int("hyperneat|seeder|num-traits"),
-			DisconnectRate:    cfg.Float64("hyperneat|seeder|disconnect-rate"),
+			NumTraits:         cfg.Int("neat|seeder|num-traits"),
+			DisconnectRate:    cfg.Float64("neat|seeder|disconnect-rate"),
 			SeedLocalityLayer: cfg.Bool("hyperneat|transcriber|seed-locality-layer"),
 			SeedLocalityX:     cfg.Bool("hyperneat|transcriber|seed-locality-x"),
 			SeedLocalityY:     cfg.Bool("hyperneat|transcriber|seed-locality-y"),
