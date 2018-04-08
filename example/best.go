@@ -18,6 +18,6 @@ func ShowBest(pop evo.Population) error {
 
 	// Output the best
 	best := genomes[len(genomes)-1]
-	log.Printf("generation %d, id %d, species %d, fitness %f, solved %t, complexity %d\n", pop.Generation, best.ID, best.SpeciesID, best.Fitness, best.Solved, best.Complexity())
+	log.Printf("generation %d, id %d, species %d, fitness %f, solved %t, complexity %d\n", pop.Generation, best.ID, best.Species, best.Fitness, best.Solved, best.Complexity())
 	return nil
 }

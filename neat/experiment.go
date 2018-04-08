@@ -20,7 +20,6 @@ type Experiment struct {
 	Selector
 	Speciator
 	Transcriber
-	Updater
 	forward.Translator
 	parallel.Searcher
 	evo.Mutators
@@ -67,6 +66,7 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 			Elitism:                     cfg.Float64("neat|selector|elitism"), // Set to zero for novelty search
 			SurvivalRate:                cfg.Float64("neat|selector|survival-rate"),
 			Comparison:                  cfg.Comparison("neat|selector|comparison"), // can specify multiple functions separated by comma
+			DecayRate:                   cfg.Float64("neat|updater|species-decay-rate"),
 		},
 
 		// Set the speciator helper using the compatibility distance helper
@@ -89,17 +89,11 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 			DisableSortCheck: cfg.Bool("neat|transcriber|disable-sort-check"),
 		},
 
-		// Set the updater helper
-		Updater: Updater{
-			SpeciesDecayRate: cfg.Float64("neat|updater|species-decay-rate"),
-			Comparison:       cfg.Comparison("neat|updater|comparison"),
-		},
-
 		// Create an empty slice for the mutators. Those are added below.
 		Mutators: make([]evo.Mutator, 0, 5),
 
 		// Set the translator to the default forward network
-		// Translator: forward.Translator{DisableSortCheck: cfg.Bool("forward|translator|disable-sort-check")},
+		Translator: forward.Translator{DisableSortCheck: cfg.Bool("forward|translator|disable-sort-check")},
 
 		// Initialise the subscriptions slice
 		subscriptions: make([]evo.Subscription, 0, 5),
@@ -116,6 +110,7 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 		HiddenActivation:   cfg.Activation("neat|mutator|complexify|hidden-activation"),
 		DisableSortCheck:   cfg.Bool("neat|mutator|complexify|disable-sort-check"),
 	}
+
 	if cm.AddNodeProbability > 0.0 || cm.AddConnProbability > 0.0 {
 		exp.Mutators = append(exp.Mutators, cm)
 	}

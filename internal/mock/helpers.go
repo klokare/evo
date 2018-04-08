@@ -15,7 +15,6 @@ type Experiment struct {
 	Speciator
 	Transcriber
 	Translator
-	Updater
 	callbacks []evo.Subscription
 }
 
@@ -148,16 +147,6 @@ type Speciator struct{ Called, ErrorOn int }
 func (m *Speciator) Speciate(*evo.Population) error {
 	m.Called++
 	if m.Called == m.ErrorOn {
-		return errors.New("error in  mutator")
-	}
-	return nil
-}
-
-type Updater struct{ Called, HasError bool }
-
-func (m *Updater) Update(*evo.Population, []evo.Result) error {
-	m.Called = true
-	if m.HasError {
 		return errors.New("error in  mutator")
 	}
 	return nil

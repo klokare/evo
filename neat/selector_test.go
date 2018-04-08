@@ -13,34 +13,29 @@ func TestSelectorSelect(t *testing.T) {
 		Desc       string
 		Population evo.Population
 		Continuing []evo.Genome
-		Offspring  map[int64]int
+		Offspring  map[int]int
 		HasError   bool
 	}{
 		{
 			Desc: "all species still active",
 			Population: evo.Population{
-				Species: []evo.Species{
-					{ID: 10},
-					{ID: 20},
-					{ID: 30},
-				},
 				Genomes: []evo.Genome{
-					{ID: 6, SpeciesID: 10, Fitness: 8.0},
-					{ID: 9, SpeciesID: 10, Fitness: 4.0},
-					{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-					{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 1, SpeciesID: 20, Fitness: 4.0},
-					{ID: 3, SpeciesID: 30, Fitness: 3.5},
-					{ID: 4, SpeciesID: 30, Fitness: 3.5},
-					{ID: 5, SpeciesID: 30, Fitness: 3.5},
+					{ID: 6, Species: 10, Fitness: 8.0},
+					{ID: 9, Species: 10, Fitness: 4.0},
+					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 1, Species: 20, Fitness: 4.0},
+					{ID: 3, Species: 30, Fitness: 3.5},
+					{ID: 4, Species: 30, Fitness: 3.5},
+					{ID: 5, Species: 30, Fitness: 3.5},
 				},
 			},
 			Continuing: []evo.Genome{
-				{ID: 6, SpeciesID: 10, Fitness: 8.0},
-				{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-				{ID: 3, SpeciesID: 30, Fitness: 3.5},
+				{ID: 6, Species: 10, Fitness: 8.0},
+				{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+				{ID: 3, Species: 30, Fitness: 3.5},
 			},
-			Offspring: map[int64]int{
+			Offspring: map[int]int{
 				10: 2,
 				20: 1,
 				30: 1,
@@ -49,28 +44,23 @@ func TestSelectorSelect(t *testing.T) {
 		{
 			Desc: "species 10 decayed",
 			Population: evo.Population{
-				Species: []evo.Species{
-					{ID: 10, Decay: 0.5},
-					{ID: 20},
-					{ID: 30},
-				},
 				Genomes: []evo.Genome{
-					{ID: 6, SpeciesID: 10, Fitness: 8.0},
-					{ID: 9, SpeciesID: 10, Fitness: 4.0},
-					{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-					{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 1, SpeciesID: 20, Fitness: 4.0},
-					{ID: 3, SpeciesID: 30, Fitness: 3.5},
-					{ID: 4, SpeciesID: 30, Fitness: 3.5},
-					{ID: 5, SpeciesID: 30, Fitness: 3.5},
+					{ID: 6, Species: 10, Fitness: 8.0, Age: 1},
+					{ID: 9, Species: 10, Fitness: 4.0},
+					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 1, Species: 20, Fitness: 4.0},
+					{ID: 3, Species: 30, Fitness: 3.5},
+					{ID: 4, Species: 30, Fitness: 3.5},
+					{ID: 5, Species: 30, Fitness: 3.5},
 				},
 			},
 			Continuing: []evo.Genome{
-				{ID: 6, SpeciesID: 10, Fitness: 8.0},                                                    // absolute leader
-				{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // Same as ID 8 but more complex
-				{ID: 3, SpeciesID: 30, Fitness: 3.5},                                                    // same as ID 5 but younger
+				{ID: 6, Species: 10, Fitness: 8.0},                                                    // absolute leader
+				{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // Same as ID 8 but more complex
+				{ID: 3, Species: 30, Fitness: 3.5},                                                    // same as ID 5 but younger
 			},
-			Offspring: map[int64]int{
+			Offspring: map[int]int{
 				10: 1, // Fewer because of decay
 				20: 2,
 				30: 1,
@@ -79,28 +69,23 @@ func TestSelectorSelect(t *testing.T) {
 		{
 			Desc: "species 10 stagnant",
 			Population: evo.Population{
-				Species: []evo.Species{
-					{ID: 10, Decay: 1.0},
-					{ID: 20},
-					{ID: 30},
-				},
 				Genomes: []evo.Genome{
-					{ID: 6, SpeciesID: 10, Fitness: 8.0},
-					{ID: 9, SpeciesID: 10, Fitness: 4.0},
-					{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-					{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 1, SpeciesID: 20, Fitness: 4.0},
-					{ID: 3, SpeciesID: 30, Fitness: 3.5},
-					{ID: 4, SpeciesID: 30, Fitness: 3.5},
-					{ID: 5, SpeciesID: 30, Fitness: 3.5},
+					{ID: 6, Species: 10, Fitness: 8.0, Age: 3},
+					{ID: 9, Species: 10, Fitness: 4.0},
+					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 1, Species: 20, Fitness: 4.0},
+					{ID: 3, Species: 30, Fitness: 3.5},
+					{ID: 4, Species: 30, Fitness: 3.5},
+					{ID: 5, Species: 30, Fitness: 3.5},
 				},
 			},
 			Continuing: []evo.Genome{
-				{ID: 6, SpeciesID: 10, Fitness: 8.0}, // stays in because overall best
-				{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-				{ID: 3, SpeciesID: 30, Fitness: 3.5},
+				{ID: 6, Species: 10, Fitness: 8.0}, // stays in because overall best
+				{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+				{ID: 3, Species: 30, Fitness: 3.5},
 			},
-			Offspring: map[int64]int{
+			Offspring: map[int]int{
 				20: 3,
 				30: 1,
 			},
@@ -108,27 +93,22 @@ func TestSelectorSelect(t *testing.T) {
 		{
 			Desc: "species 10 stagnant, best shared with other species",
 			Population: evo.Population{
-				Species: []evo.Species{
-					{ID: 10, Decay: 1.0},
-					{ID: 20},
-					{ID: 30},
-				},
 				Genomes: []evo.Genome{
-					{ID: 6, SpeciesID: 10, Fitness: 5.0},
-					{ID: 9, SpeciesID: 10, Fitness: 4.0},
-					{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-					{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 1, SpeciesID: 20, Fitness: 4.0},
-					{ID: 3, SpeciesID: 30, Fitness: 3.5},
-					{ID: 4, SpeciesID: 30, Fitness: 3.5},
-					{ID: 5, SpeciesID: 30, Fitness: 3.5},
+					{ID: 6, Species: 10, Fitness: 5.0, Age: 3},
+					{ID: 9, Species: 10, Fitness: 4.0},
+					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 1, Species: 20, Fitness: 4.0},
+					{ID: 3, Species: 30, Fitness: 3.5},
+					{ID: 4, Species: 30, Fitness: 3.5},
+					{ID: 5, Species: 30, Fitness: 3.5},
 				},
 			},
 			Continuing: []evo.Genome{ // None from species 10 because stagnant and another species has same fitness
-				{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // Same as ID 8 but more complex
-				{ID: 3, SpeciesID: 30, Fitness: 3.5},                                                    // same as ID 5 but younger
+				{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // Same as ID 8 but more complex
+				{ID: 3, Species: 30, Fitness: 3.5},                                                    // same as ID 5 but younger
 			},
-			Offspring: map[int64]int{
+			Offspring: map[int]int{
 				20: 4,
 				30: 1,
 			},
@@ -142,6 +122,7 @@ func TestSelectorSelect(t *testing.T) {
 			s := &Selector{
 				Comparison:     evo.ByFitness,
 				PopulationSize: len(c.Population.Genomes),
+				DecayRate:      0.5,
 			}
 
 			// Select
@@ -176,12 +157,13 @@ func TestSelectorSelect(t *testing.T) {
 			}
 
 			// Correct (minimum) count of offspring
-			aoff := make(map[int64]int, len(aps))
+			aoff := make(map[int]int, len(aps))
 			for _, ap := range aps {
-				aoff[ap[0].SpeciesID]++
+				aoff[ap[0].Species]++
 			}
 			eoff := c.Offspring
 			if len(eoff) != len(aoff) {
+				t.Log("aoff", aoff)
 				t.Errorf("incorrect number of species in parent groups: expected %d, actual %d", len(eoff), len(aoff))
 			} else {
 				for esid, ecnt := range eoff {
@@ -274,20 +256,15 @@ func TestSelectorMutateOnly(t *testing.T) {
 
 	// Create the initial population
 	pop := evo.Population{
-		Species: []evo.Species{
-			{ID: 10},
-			{ID: 20},
-			{ID: 30},
-		},
 		Genomes: []evo.Genome{
-			{ID: 6, SpeciesID: 10, Fitness: 8.0},
-			{ID: 9, SpeciesID: 10, Fitness: 4.0},
-			{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-			{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-			{ID: 1, SpeciesID: 20, Fitness: 4.0},
-			{ID: 3, SpeciesID: 30, Fitness: 3.5},
-			{ID: 4, SpeciesID: 30, Fitness: 3.5},
-			{ID: 5, SpeciesID: 30, Fitness: 3.5},
+			{ID: 6, Species: 10, Fitness: 8.0},
+			{ID: 9, Species: 10, Fitness: 4.0},
+			{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+			{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+			{ID: 1, Species: 20, Fitness: 4.0},
+			{ID: 3, Species: 30, Fitness: 3.5},
+			{ID: 4, Species: 30, Fitness: 3.5},
+			{ID: 5, Species: 30, Fitness: 3.5},
 		},
 	}
 
@@ -319,20 +296,15 @@ func TestSelectorInterspecies(t *testing.T) {
 
 	// Create the initial population
 	pop := evo.Population{
-		Species: []evo.Species{
-			{ID: 10},
-			{ID: 20},
-			{ID: 30},
-		},
 		Genomes: []evo.Genome{
-			{ID: 6, SpeciesID: 10, Fitness: 8.0},
-			{ID: 9, SpeciesID: 10, Fitness: 4.0},
-			{ID: 2, SpeciesID: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
-			{ID: 8, SpeciesID: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-			{ID: 1, SpeciesID: 20, Fitness: 4.0},
-			{ID: 3, SpeciesID: 30, Fitness: 3.5},
-			{ID: 4, SpeciesID: 30, Fitness: 3.5},
-			{ID: 5, SpeciesID: 30, Fitness: 3.5},
+			{ID: 6, Species: 10, Fitness: 8.0},
+			{ID: 9, Species: 10, Fitness: 4.0},
+			{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
+			{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+			{ID: 1, Species: 20, Fitness: 4.0},
+			{ID: 3, Species: 30, Fitness: 3.5},
+			{ID: 4, Species: 30, Fitness: 3.5},
+			{ID: 5, Species: 30, Fitness: 3.5},
 		},
 	}
 
@@ -354,7 +326,7 @@ func TestSelectorInterspecies(t *testing.T) {
 
 	// There couplees should be interspecies
 	for i, ps := range aps {
-		if ps[0].SpeciesID == ps[1].SpeciesID {
+		if ps[0].Species == ps[1].Species {
 			t.Errorf("expected parents to be of different species in group %d", i)
 		}
 	}
@@ -364,78 +336,15 @@ func TestSelectorAdjCountHigh(t *testing.T) {
 	// the tests above never produce a count above target, this checks that scenario
 	cnt := 4
 	tgt := 3
-	off := map[int64]int{
-		1: 0,
-		2: 1,
-		3: 3,
-	}
+	off := []int{0, 1, 3}
 
-	adjCounts(off, cnt, tgt)
+	adjCounts(evo.NewRandom(), off, cnt, tgt)
 	cnt = 0
 	for _, x := range off {
 		cnt += x
 	}
 	if cnt != tgt {
 		t.Errorf("incorrect count after adjustment: expected %d, actual %d", tgt, cnt)
-	}
-}
-
-func TestSelectorStagnant(t *testing.T) {
-
-	// Create a stagnant population
-	p := evo.Population{
-		Species: []evo.Species{
-			{ID: 1, Decay: 1.0},
-			{ID: 2, Decay: 1.0}, // has best
-		},
-		Genomes: []evo.Genome{
-			{ID: 1, SpeciesID: 1, Fitness: 1.0},
-			{ID: 2, SpeciesID: 1, Fitness: 2.0},
-			{ID: 3, SpeciesID: 2, Fitness: 2.0},
-			{ID: 4, SpeciesID: 2, Fitness: 3.0}, // best
-		},
-	}
-
-	// Select
-	s := &Selector{
-		Comparison:     evo.ByFitness,
-		PopulationSize: len(p.Genomes),
-	}
-	cs, ps, err := s.Select(p)
-
-	// Test for error
-	t.Run("error", mock.Error(false, err))
-
-	// Test for continuing
-	if len(cs) != 1 {
-		t.Errorf("incorrect number of continuing: expected 1, actual: %d", len(cs))
-	} else {
-		if cs[0].ID != 4 {
-			t.Errorf("incorrect continuing genome: expected 4, actual %d", cs[0].ID)
-		}
-	}
-
-	// Test for parents
-	if len(ps) != 3 {
-		t.Errorf("incorrect number of parent groups: expected 3, actual %d", len(ps))
-	} else {
-		for i, pg := range ps {
-			if len(pg) != 1 {
-				t.Errorf("incorrect number of parents in group %d: expected 1, actaul %d", i, len(pg))
-			} else if pg[0].ID != 4 {
-				t.Errorf("incorrect genome in parent group %d: expected 5, actual %d", i, pg[i].ID)
-			}
-		}
-	}
-
-	// Species decay and champion should be reset
-	for _, z := range p.Species {
-		if z.Decay != 0.0 {
-			t.Errorf("incorrect decay value for species %d: expected 0.0, actual %f", z.ID, z.Decay)
-		}
-		if z.Champion != 0 {
-			t.Errorf("incorrect champion for species %d: expected 0.0, actual %d", z.ID, z.Champion)
-		}
 	}
 }
 

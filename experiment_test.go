@@ -114,16 +114,6 @@ func TestExperimentRunErrors(t *testing.T) {
 				},
 			},
 		},
-		{
-			Desc:     "updater fails",
-			HasError: true,
-			Options: []func(*mockExperiment){
-				func(e *mockExperiment) {
-					e.mockPopulator.PopSize = 1
-					e.mockUpdater.HasError = true
-				},
-			},
-		},
 	}
 
 	for _, c := range cases {
@@ -328,7 +318,6 @@ type mockExperiment struct {
 	mockSpeciator
 	mockTranscriber
 	mockTranslator
-	mockUpdater
 	callbacks []Subscription
 }
 
@@ -437,16 +426,6 @@ type mockSpeciator struct{ Called, ErrorOn int }
 func (m *mockSpeciator) Speciate(*Population) error {
 	m.Called++
 	if m.Called == m.ErrorOn {
-		return errors.New("error in mock mutator")
-	}
-	return nil
-}
-
-type mockUpdater struct{ Called, HasError bool }
-
-func (m *mockUpdater) Update(*Population, []Result) error {
-	m.Called = true
-	if m.HasError {
 		return errors.New("error in mock mutator")
 	}
 	return nil
