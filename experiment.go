@@ -3,6 +3,7 @@ package evo
 import (
 	"context"
 	"errors"
+	"sort"
 	"sync/atomic"
 
 	"github.com/klokare/evo/internal/workers"
@@ -25,7 +26,6 @@ type Experiment interface {
 	Speciator
 	Transcriber
 	Translator
-	Updater
 }
 
 // Run the experiment in the given context with the evalutor. The context will decide when the
@@ -75,8 +75,15 @@ func Run(ctx context.Context, exp Experiment, eval Evaluator) (pop Population, e
 		if continuing, parents, err = exp.Select(pop); err != nil {
 			return
 		}
+
+		// There will be offspring so update the generation
 		if len(parents) > 0 {
 			pop.Generation++
+		}
+
+		// Age the continuing genomes
+		for i := 0; i < len(continuing); i++ {
+			continuing[i].Age++
 		}
 
 		// Create the population
@@ -116,9 +123,7 @@ func Run(ctx context.Context, exp Experiment, eval Evaluator) (pop Population, e
 		}
 
 		// Update the population with the results
-		if err = exp.Update(&pop, results); err != nil {
-			return
-		}
+		update(&pop, results)
 
 		// Inform listeners that evaluation has completed
 		if err = publish(listeners, Evaluated, pop); err != nil {
@@ -183,6 +188,7 @@ func createOffspring(helper progenator, lastGID *int64, parents [][]Genome) (off
 			return
 		}
 		child.ID = atomic.AddInt64(lastGID, 1) // Assign the next ID
+		child.Age = 1                          // Initialse the genome's age
 
 		// Mutate the child and add to the list
 		if err = helper.Mutate(&child); err != nil {
@@ -251,4 +257,17 @@ func decodeGenomes(dec decoder, genomes []Genome) (phenomes []Phenome, err error
 	close(ch)
 	<-done
 	return
+}
+
+func update(pop *Population, results []Result) {
+	sort.Slice(results, func(i, j int) bool { return results[i].ID < results[j].ID })
+	for i, g := range pop.Genomes {
+		idx := sort.Search(len(results), func(i int) bool { return results[i].ID >= g.ID })
+		if idx < len(results) && results[idx].ID == g.ID {
+			g.Fitness = results[idx].Fitness
+			g.Novelty = results[idx].Novelty
+			g.Solved = results[idx].Solved
+		}
+		pop.Genomes[i] = g
+	}
 }

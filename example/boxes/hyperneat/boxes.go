@@ -16,6 +16,10 @@ import (
 
 // Define flags to override configuration file settings
 var (
+	_ = flag.Bool("hyperneat-seed-locality-layer", false, "seed locality for layer")
+	_ = flag.Bool("hyperneat-seed-locality-x", false, "seed locality for x")
+	_ = flag.Bool("hyperneat-seed-locality-y", false, "seed locality for y")
+	_ = flag.Bool("hyperneat-seed-locality-z", false, "seed locality for z")
 	_ = flag.String("neat-hidden-activation", "", "override hidden activation property")
 	_ = flag.String("neat-output-activation", "", "override output activation property")
 	_ = flag.Int("neat-population-size", 100, "override population size property")
@@ -60,6 +64,8 @@ func main() {
 
 		// Create the experiment
 		exp := hyperneat.NewExperiment(cfg)
+
+		log.Printf("exp %+v\n", exp)
 
 		// Create the evaluator
 		eval := boxes.NewEvaluator(cfg.Int("boxes|resolution"))

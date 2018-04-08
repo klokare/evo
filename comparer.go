@@ -97,9 +97,9 @@ func (c Comparison) Compare(a, b Genome) int8 {
 
 	case BySpecies:
 		switch {
-		case a.SpeciesID < b.SpeciesID:
+		case a.Species < b.Species:
 			return -1
-		case b.SpeciesID < a.SpeciesID:
+		case b.Species < a.Species:
 			return 1
 		default:
 			return 0

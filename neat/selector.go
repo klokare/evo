@@ -20,6 +20,7 @@ type Selector struct {
 	DisableContinuing           bool
 	Elitism                     float64
 	SurvivalRate                float64
+	DecayRate                   float64
 	evo.Comparison
 
 	// Internal state
@@ -32,78 +33,69 @@ type Selector struct {
 func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
 
 	// Sort and rank the genomes
+	// TODO: use a copy of genomes instead of pop.Genomes since we're sorting by something other than ID
 	ranks := sortRank(s.Comparison, pop.Genomes)
 
 	// Identify the current champion
 	best := pop.Genomes[0]
 
-	// Restart the populaton if necessary
-	stagnant := true
-	for _, s := range pop.Species {
-		if s.Decay < 1.0 {
-			stagnant = false
-			break
+	// TRIAL:
+	// Override species decay with the decay rate times the max age of genomes. This is already different than
+	// the current implementation in that it does not reset. Or, well, it does if only 1 elite is used.
+	bs := evo.GroupBySpecies(pop.Genomes)
+	decay := make([]float64, len(bs))
+	for sid, gs := range bs {
+		ma := 0.0
+		for _, g := range gs {
+			a := float64(g.Age)
+			if ma < a {
+				ma = a
+			}
 		}
-	}
-	if stagnant {
-		if !s.DisableContinuing {
-			continuing = []evo.Genome{best}
+		d := ma * s.DecayRate
+		if d > 1.0 {
+			d = 1.0
 		}
-		parents = make([][]evo.Genome, s.PopulationSize-len(continuing))
-		for i := 0; i < len(parents); i++ {
-			parents[i] = []evo.Genome{best}
-		}
-		for i := 0; i < len(pop.Species); i++ {
-			pop.Species[i].Decay = 0.0
-			pop.Species[i].Champion = 0
-		}
-		return
+		decay[sid] = d
 	}
 
-	// Divide the genomes into species. Use this loop to also begin the average ranking calculation
-	var genomes []evo.Genome
-	var ok bool
-	g2s := make(map[int64][]evo.Genome, len(pop.Species))
-	avg := make(map[int64]float64, len(pop.Species))
-	for _, g := range pop.Genomes {
+	// Calculate the avg ranking by species, adjusted by decay, and the total of avg to be used
+	// below for roulette
+	var tot float64
+	avg := make([]float64, len(bs))
+	for sid, gs := range bs {
 
-		// Append the genome
-		if genomes, ok = g2s[g.SpeciesID]; !ok {
-			genomes = make([]evo.Genome, 0, 10)
+		// Calculate the average
+		for _, g := range gs {
+			avg[sid] += ranks[g.ID]
 		}
-		genomes = append(genomes, g)
-		g2s[g.SpeciesID] = genomes
+		avg[sid] /= float64(len(gs))
 
-		// Add in the ranking
-		avg[g.SpeciesID] += ranks[g.ID]
-	}
+		// Adjust by decay
+		avg[sid] *= (1.0 - decay[sid])
 
-	// Finish the average ranking, apply the decay rates, and calculate the total
-	tot := 0.0
-	for _, z := range pop.Species {
-		n := float64(len(g2s[z.ID]))
-		x := avg[z.ID] * (1.0 - z.Decay)
-		if n > 0.0 {
-			x /= n
-		}
-		avg[z.ID] = x
-		tot += x
+		// Append to total
+		tot += avg[sid]
 	}
 
 	// Determine continuing
 	if !s.DisableContinuing {
+		var bsid int // index of best's species
 		continuing = make([]evo.Genome, 0, len(avg))
-		for sid, genomes := range g2s {
+		for sid, gs := range bs {
 			if avg[sid] > 0.0 { // species is not stagnant
-				continuing = append(continuing, genomes[0])
+				continuing = append(continuing, gs[0])
+			}
+			if gs[0].ID == best.ID {
+				bsid = sid
 			}
 		}
 
 		// Ensure best is continuing, if necessary
-		if avg[best.SpeciesID] == 0.0 { // best is stagnant
+		if avg[bsid] == 0.0 { // best is stagnant
 			found := false
 			for _, g := range continuing {
-				if s.Compare(best, g) == 0 { // Another champion exists
+				if s.Compare(best, g) == 0 { // A champion exists in another species
 					found = true
 					break
 				}
@@ -121,7 +113,7 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 	if tgt <= 0 {
 		return // population size fulfilled with continuing
 	}
-	off := make(map[int64]int, len(avg))
+	off := make([]int, len(avg))
 	for sid, x := range avg {
 		if x > 0.0 {
 			ns := int(math.Floor(float64(tgt) * x / tot))
@@ -143,7 +135,7 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 
 		for i := 0; i < n; i++ {
 			// Pick parent 1 from the species
-			p1 := roulette(rng, g2s[sid1], ranks)
+			p1 := roulette(rng, bs[sid1], ranks)
 
 			// This is a single parent
 			if rng.Float64() < s.MutateOnlyProbability {
@@ -155,15 +147,15 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 			// TODO: add interspecies
 			sid := sid1
 			if len(avg) > 1 && rng.Float64() < s.InterspeciesMateProbability {
-				idxs := rng.Perm(len(pop.Species))
+				idxs := rng.Perm(len(bs))
 				for _, i := range idxs {
-					if pop.Species[i].ID != sid1 {
-						sid = pop.Species[i].ID
+					if i != sid1 {
+						sid = i
 						break
 					}
 				}
 			}
-			p2 := roulette(rng, g2s[sid], ranks)
+			p2 := roulette(rng, bs[sid], ranks)
 			parents = append(parents, []evo.Genome{p1, p2})
 		}
 	}
@@ -212,7 +204,7 @@ func sortRank(fn evo.Comparison, genomes []evo.Genome) (ranks map[int64]float64)
 
 // Adjust counts by assigning the difference to the most fit species which is identified by the
 // species with the most offspring assigned and the lowest ID.
-func adjCounts(off map[int64]int, cnt, tgt int) {
+func adjCounts(off []int, cnt, tgt int) {
 
 	// Calaculate the adjustment
 	diff := tgt - cnt

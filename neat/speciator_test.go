@@ -37,7 +37,6 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			HasError:  true,
 			Actual: evo.Population{
 				Genomes: []evo.Genome{{ID: 1}},
-				Species: []evo.Species{{ID: 10}},
 			},
 		},
 		{
@@ -53,20 +52,14 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			HasError:  false,
 			Actual: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
+					{ID: 2, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
 				},
 			},
 			Expected: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
+					{ID: 2, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
 				},
 			},
 		},
@@ -77,21 +70,14 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			HasError:  false,
 			Actual: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},     // 2 Nodes
-					{ID: 2, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}, // 3 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},    // 2 Nodes
+					{ID: 2, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}, // 3 Nodes
 				},
 			},
 			Expected: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},      // 2 Nodes
-					{ID: 2, SpeciesID: 101, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 101, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},      // 2 Nodes
+					{ID: 2, Species: 101, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}, // 2 Nodes
 				},
 			},
 		},
@@ -102,71 +88,14 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			HasError:  false,
 			Actual: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 11, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
+					{ID: 2, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
 				},
 			},
 			Expected: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-				},
-			},
-		},
-		{
-			Desc:      "previous species assignment, species still exists",
-			Distancer: MockDistancer{},
-			Threshold: 1.0,
-			HasError:  false,
-			Actual: evo.Population{
-				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 25, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},                // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same structure so assignment should go to 10 unless previously assigned
-				},
-			},
-			Expected: evo.Population{
-				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 25, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 25, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}}, // Same structure so assignment should go to 10 unless previously assigned
-				},
-			},
-		},
-		{
-			Desc:      "previous species assignment, species no longer exists",
-			Distancer: MockDistancer{},
-			Threshold: 1.0,
-			HasError:  false,
-			Actual: evo.Population{
-				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 25, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},                // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-				},
-			},
-			Expected: evo.Population{
-				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-					{ID: 2, SpeciesID: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
+					{ID: 1, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
+					{ID: 2, Species: 10, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}, // 2 Nodes
 				},
 			},
 		},
@@ -191,35 +120,10 @@ func TestSpeciatorSpeciate(t *testing.T) {
 				return
 			}
 
-			// Test the species
-			t.Run("species", testSpeciatorSpecies(c.Actual.Species, c.Expected.Species))
-
 			// Test the genomes
 			t.Run("genomes", testSpeciatorGenomes(c.Actual.Genomes, c.Expected.Genomes))
 
 		})
-	}
-}
-
-func testSpeciatorSpecies(actual, expected []evo.Species) func(*testing.T) {
-	return func(t *testing.T) {
-		if len(expected) != len(actual) {
-			t.Log("incorrect species:", actual, expected)
-			t.Errorf("incorrect number of species: expected %d, actual %d", len(expected), len(actual))
-		} else {
-			for _, e := range expected {
-				found := false
-				for _, a := range actual {
-					if e.ID == a.ID {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Errorf("species %d not found in actual", e.ID)
-				}
-			}
-		}
 	}
 }
 
@@ -232,8 +136,8 @@ func testSpeciatorGenomes(actual, expected []evo.Genome) func(*testing.T) {
 				found := false
 				for _, a := range actual {
 					if e.ID == a.ID {
-						if e.SpeciesID != a.SpeciesID {
-							t.Errorf("incorrect species assignment for genome %d: expected %d, actual %d", e.ID, e.SpeciesID, a.SpeciesID)
+						if e.Species != a.Species {
+							t.Errorf("incorrect species assignment for genome %d: expected %d, actual %d", e.ID, e.Species, a.Species)
 						}
 						found = true
 						break
@@ -267,12 +171,8 @@ func TestSpeciatorModify(t *testing.T) {
 			Expected: 1.0,
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
 				},
 			},
 		},
@@ -284,12 +184,8 @@ func TestSpeciatorModify(t *testing.T) {
 			Expected: 1.0, // Should decrease
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
 				},
 			},
 		},
@@ -301,12 +197,8 @@ func TestSpeciatorModify(t *testing.T) {
 			Expected: 1.5, // Should increase
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
 				},
 			},
 		},
@@ -318,12 +210,8 @@ func TestSpeciatorModify(t *testing.T) {
 			Expected: 0.5, // Should not go below the modifier value as a minimum
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 1, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
-					{ID: 2, SpeciesID: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
-				},
-				Species: []evo.Species{
-					{ID: 10, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}}},
-					{ID: 20, Example: evo.Genome{Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}}},
+					{ID: 1, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
+					{ID: 2, Species: 0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}, {}}}},
 				},
 			},
 		},

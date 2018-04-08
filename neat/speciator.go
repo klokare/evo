@@ -2,6 +2,7 @@ package neat
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/klokare/evo"
 )
@@ -24,7 +25,8 @@ type Speciator struct {
 	Distancer // Calculates the distance between a genome and the species's example genome
 
 	// State
-	lastSID int64
+	lastSID  int
+	examples map[int]evo.Genome
 }
 
 // Speciate the population
@@ -40,57 +42,70 @@ func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 	}
 
 	// Map existing species
-	m := make(map[int64][]evo.Genome, len(pop.Species)+5)
-	a := make(map[int64]bool, len(pop.Species)+5) // tracks new assignments
-	for _, species := range pop.Species {
-		m[species.ID] = make([]evo.Genome, 0, 10)
-		if s.lastSID < species.ID {
-			s.lastSID = species.ID
+	a := make(map[int]bool, len(s.examples)+5) // tracks new assignments
+	n := make(map[int]int, len(s.examples)+5)
+
+	// TRIAL: use local cache so we can phase out species as a separate object
+	// Ensure examples for existing species
+	var ok bool
+	if s.examples == nil {
+		s.examples = make(map[int]evo.Genome, 20)
+	}
+	for _, g := range pop.Genomes {
+		if g.Species > 0 {
+			if _, ok = s.examples[g.Species]; !ok {
+				s.examples[g.Species] = g
+			}
+			if s.lastSID < g.Species {
+				s.lastSID = g.Species
+			}
 		}
 	}
 
+	// Extract IDs into a sorted list
+	sids := make([]int, 0, len(s.examples)+5)
+	for sid := range s.examples {
+		sids = append(sids, sid)
+	}
+	sort.Slice(sids, func(i, j int) bool { return sids[i] < sids[j] })
+
 	// Assign genomes to species
-	var genomes []evo.Genome
-	var ok bool
 	for i, genome := range pop.Genomes {
 
 		// The genomes is already assigned an ID and that species exists
-		if genomes, ok = m[genome.SpeciesID]; ok {
-			genomes = append(genomes, genome)
-			m[genome.SpeciesID] = genomes
+		if _, ok = s.examples[genome.Species]; ok {
+			n[genome.Species]++
 			continue
 		}
 
-		// Look at existing species
-		genome.SpeciesID = 0
-		for _, species := range pop.Species {
+		// Look at existing species.
+		// Interestingly, the number of XOR failures rises 5x if exmaples are iterated randomly
+		// (like using range over Go map). Presenting older (lower IDs) first prevents this.
+		genome.Species = 0
+		// for sid, example := range s.examples {
+		for _, sid := range sids {
+			example := s.examples[sid]
+
 			var d float64
-			if d, err = s.Distance(species.Example, genome); err != nil {
+			if d, err = s.Distance(example, genome); err != nil {
 				return
 			}
 			if d < s.CompatibilityThreshold {
-				genome.SpeciesID = species.ID
-				genomes = m[genome.SpeciesID]
-				genomes = append(genomes, genome)
-				m[genome.SpeciesID] = genomes
-				a[genome.SpeciesID] = true
+				genome.Species = sid
+				a[genome.Species] = true
+				n[genome.Species]++
 				break
 			}
 		}
 
 		// No species found, add a new one
-		if genome.SpeciesID == 0 {
+		if genome.Species == 0 {
 			s.lastSID++
-			species := evo.Species{
-				ID:      s.lastSID,
-				Example: genome,
-			}
-			pop.Species = append(pop.Species, species)
-			genome.SpeciesID = species.ID
-			genomes := make([]evo.Genome, 0, 10)
-			genomes = append(genomes, genome)
-			m[genome.SpeciesID] = genomes
-			a[genome.SpeciesID] = true
+			genome.Species = s.lastSID
+			a[genome.Species] = true
+			n[genome.Species]++
+			s.examples[genome.Species] = genome
+			sids = append(sids, genome.Species)
 		}
 
 		// Save the genome back to the population
@@ -98,13 +113,9 @@ func (s *Speciator) Speciate(pop *evo.Population) (err error) {
 	}
 
 	// Remove empty species
-	tmp := pop.Species
-	pop.Species = make([]evo.Species, 0, len(m))
-	for _, species := range tmp {
-		if genomes, ok := m[species.ID]; ok {
-			if len(genomes) > 0 {
-				pop.Species = append(pop.Species, species)
-			}
+	for sid, cnt := range n {
+		if cnt == 0 {
+			delete(s.examples, sid)
 		}
 	}
 
