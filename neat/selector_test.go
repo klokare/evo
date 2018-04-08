@@ -45,7 +45,7 @@ func TestSelectorSelect(t *testing.T) {
 			Desc: "species 10 decayed",
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 6, Species: 10, Fitness: 8.0},
+					{ID: 6, Species: 10, Fitness: 8.0, Age: 1},
 					{ID: 9, Species: 10, Fitness: 4.0},
 					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
 					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
@@ -70,7 +70,7 @@ func TestSelectorSelect(t *testing.T) {
 			Desc: "species 10 stagnant",
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 6, Species: 10, Fitness: 8.0},
+					{ID: 6, Species: 10, Fitness: 8.0, Age: 3},
 					{ID: 9, Species: 10, Fitness: 4.0},
 					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
 					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
@@ -94,7 +94,7 @@ func TestSelectorSelect(t *testing.T) {
 			Desc: "species 10 stagnant, best shared with other species",
 			Population: evo.Population{
 				Genomes: []evo.Genome{
-					{ID: 6, Species: 10, Fitness: 5.0},
+					{ID: 6, Species: 10, Fitness: 5.0, Age: 3},
 					{ID: 9, Species: 10, Fitness: 4.0},
 					{ID: 2, Species: 10, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}}}},
 					{ID: 8, Species: 20, Fitness: 5.0, Encoded: evo.Substrate{Nodes: []evo.Node{{}, {}}}},
@@ -122,6 +122,7 @@ func TestSelectorSelect(t *testing.T) {
 			s := &Selector{
 				Comparison:     evo.ByFitness,
 				PopulationSize: len(c.Population.Genomes),
+				DecayRate:      0.5,
 			}
 
 			// Select
@@ -162,6 +163,7 @@ func TestSelectorSelect(t *testing.T) {
 			}
 			eoff := c.Offspring
 			if len(eoff) != len(aoff) {
+				t.Log("aoff", aoff)
 				t.Errorf("incorrect number of species in parent groups: expected %d, actual %d", len(eoff), len(aoff))
 			} else {
 				for esid, ecnt := range eoff {
@@ -336,7 +338,7 @@ func TestSelectorAdjCountHigh(t *testing.T) {
 	tgt := 3
 	off := []int{0, 1, 3}
 
-	adjCounts(off, cnt, tgt)
+	adjCounts(evo.NewRandom(), off, cnt, tgt)
 	cnt = 0
 	for _, x := range off {
 		cnt += x
@@ -344,52 +346,6 @@ func TestSelectorAdjCountHigh(t *testing.T) {
 	if cnt != tgt {
 		t.Errorf("incorrect count after adjustment: expected %d, actual %d", tgt, cnt)
 	}
-}
-
-func TestSelectorStagnant(t *testing.T) {
-
-	// Create a stagnant population
-	p := evo.Population{
-		Genomes: []evo.Genome{
-			{ID: 1, Species: 1, Fitness: 1.0},
-			{ID: 2, Species: 1, Fitness: 2.0},
-			{ID: 3, Species: 2, Fitness: 2.0},
-			{ID: 4, Species: 2, Fitness: 3.0}, // best
-		},
-	}
-
-	// Select
-	s := &Selector{
-		Comparison:     evo.ByFitness,
-		PopulationSize: len(p.Genomes),
-	}
-	cs, ps, err := s.Select(p)
-
-	// Test for error
-	t.Run("error", mock.Error(false, err))
-
-	// Test for continuing
-	if len(cs) != 1 {
-		t.Errorf("incorrect number of continuing: expected 1, actual: %d", len(cs))
-	} else {
-		if cs[0].ID != 4 {
-			t.Errorf("incorrect continuing genome: expected 4, actual %d", cs[0].ID)
-		}
-	}
-
-	// Test for parents
-	if len(ps) != 3 {
-		t.Errorf("incorrect number of parent groups: expected 3, actual %d", len(ps))
-	} else {
-		for i, pg := range ps {
-			if len(pg) != 1 {
-				t.Errorf("incorrect number of parents in group %d: expected 1, actaul %d", i, len(pg))
-			} else if pg[0].ID != 4 {
-				t.Errorf("incorrect genome in parent group %d: expected 5, actual %d", i, pg[i].ID)
-			}
-		}
-	}
-
 }
 
 func TestToggleMutateOnly(t *testing.T) {

@@ -36,7 +36,7 @@ func TestSpeciatorSpeciate(t *testing.T) {
 			Threshold: 1.0,
 			HasError:  true,
 			Actual: evo.Population{
-				Genomes: []evo.Genome{{ID: 1}},
+				Genomes: []evo.Genome{{ID: 1}, {ID: 2}},
 			},
 		},
 		{

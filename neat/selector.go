@@ -33,16 +33,17 @@ type Selector struct {
 func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents [][]evo.Genome, err error) {
 
 	// Sort and rank the genomes
-	// TODO: use a copy of genomes instead of pop.Genomes since we're sorting by something other than ID
-	ranks := sortRank(s.Comparison, pop.Genomes)
+	genomes := make([]evo.Genome, len(pop.Genomes))
+	copy(genomes, pop.Genomes)
+	ranks := sortRank(s.Comparison, genomes)
 
 	// Identify the current champion
-	best := pop.Genomes[0]
+	best := genomes[0]
 
 	// TRIAL:
 	// Override species decay with the decay rate times the max age of genomes. This is already different than
 	// the current implementation in that it does not reset. Or, well, it does if only 1 elite is used.
-	bs := evo.GroupBySpecies(pop.Genomes)
+	bs := evo.GroupBySpecies(genomes)
 	decay := make([]float64, len(bs))
 	for sid, gs := range bs {
 		ma := 0.0
@@ -126,10 +127,10 @@ func (s *Selector) Select(pop evo.Population) (continuing []evo.Genome, parents 
 	}
 
 	// Handle rounding errors by adjusting 1 offspring at a time
-	adjCounts(off, cnt, tgt)
+	rng := evo.NewRandom()
+	adjCounts(rng, off, cnt, tgt)
 
 	// Generate parents
-	rng := evo.NewRandom()
 	parents = make([][]evo.Genome, 0, tgt)
 	for sid1, n := range off {
 
@@ -204,29 +205,26 @@ func sortRank(fn evo.Comparison, genomes []evo.Genome) (ranks map[int64]float64)
 
 // Adjust counts by assigning the difference to the most fit species which is identified by the
 // species with the most offspring assigned and the lowest ID.
-func adjCounts(off []int, cnt, tgt int) {
+func adjCounts(rng evo.Random, off []int, cnt, tgt int) {
 
 	// Calaculate the adjustment
 	diff := tgt - cnt
+	adj := 1
 	if diff < 0 {
 		diff = -diff
-	}
-	adj := 1
-	if cnt > tgt {
 		adj = -1
 	}
 
 	// Make multiple passes
-	for i := 0; i < 2*diff && cnt != tgt; i++ {
-		for sid := range off {
-			n := off[sid]
-			if n+adj <= 0 {
-				continue
-			}
-			off[sid] = n + adj
-			cnt += adj
-			if cnt == tgt {
-				break
+	for cnt != tgt {
+		idxs := rng.Perm(len(off))
+		for _, i := range idxs {
+			if off[i] > 0 && off[i]+adj > 0 {
+				off[i] += adj
+				cnt += adj
+				if cnt == tgt {
+					break
+				}
 			}
 		}
 	}

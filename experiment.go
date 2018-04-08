@@ -188,7 +188,6 @@ func createOffspring(helper progenator, lastGID *int64, parents [][]Genome) (off
 			return
 		}
 		child.ID = atomic.AddInt64(lastGID, 1) // Assign the next ID
-		child.Age = 1                          // Initialse the genome's age
 
 		// Mutate the child and add to the list
 		if err = helper.Mutate(&child); err != nil {
