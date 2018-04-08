@@ -61,11 +61,6 @@ type Translator interface {
 	Translate(Substrate) (Network, error)
 }
 
-// Updater the population with the results
-type Updater interface {
-	Update(*Population, []Result) error
-}
-
 // Mutators collection which acts as a single mutator. Component mutators will be called in order
 // until the complexity of the genome changes.
 type Mutators []Mutator

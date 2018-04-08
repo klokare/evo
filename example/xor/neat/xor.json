@@ -1,5 +1,5 @@
 {
-	"disable-sort-check": false,
+	"disable-sort-check": true,
 	"neat": {
 		"comparison":                    "fitness",
 		"num-inputs":                    2,
