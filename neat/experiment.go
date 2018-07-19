@@ -21,7 +21,7 @@ type Experiment struct {
 	Speciator
 	Transcriber
 	forward.Translator
-	parallel.Searcher
+	evo.Searcher
 	evo.Mutators
 	subscriptions []evo.Subscription
 }
@@ -97,6 +97,9 @@ func NewExperiment(cfg config.Configurer) (exp *Experiment) {
 
 		// Initialise the subscriptions slice
 		subscriptions: make([]evo.Subscription, 0, 5),
+
+		// Set the default Searcher
+		Searcher: parallel.Searcher{},
 	}
 
 	// Add the mutators. Only those with a chance of being activated will be added.
